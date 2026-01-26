@@ -1,9 +1,19 @@
 # BothIsGood
 
 This gem adds a module to include into classes, supplying a convenient, concise way
-to implement multiple versions of the same method, and _run them both_. Then you can
-still _use_ the old implementation, but get an alert or log message if the new version
-ever produces a different result.
+to implement multiple versions of the same method, and _run them both_. Then you
+can still _use_ the old implementation, but get an alert or log message if the new
+version ever produces a different result.
+
+This is not a new concept; `scientist` pioneered the approach in 2016. But scientist
+is moderately _heavy_, and takes significant effort to use, so I've ended up implementing
+lightweight dual-implementation libraries multiple times; this time I'm publishing
+it so I won't have to do so again later!
+
+## Inline Invocation
+
+The "simplest" way to use BothIsGood is 'inline' - no configuration object, you just
+supply all of the needed options on the `implemented_twice` call in place.
 
 ```ruby
 include BothIsGood
@@ -11,77 +21,125 @@ include BothIsGood
 def foo_one = implementation(details)
 def foo_two = more_implementation(details)
 
-implemented_twice(:foo, original: :foo_one, replacement: :foo_two, result: :original)
+# A minimal call. Note that with no global configuration this is not very valuable,
+# since if the implementations disagree, there's no hook implemented to _tell you_ that.
+implemented_twice(:foo, primary: :foo_one, secondary: :foo_two)
 
-# or maybe, if you don't want to pay the cost _every_ time..
+# A complex call using all of the available options:
+implemented_twice(
+  :foo,
+  primary: :foo_one,
+  secondary: :foo_two,
+  rate: 0.01,
+  comparator: ->(val_one, val_two) { Math.abs(val_one - val_two) < 0.01 },
+  on_mismatch: ->(val_one, val_two) { LOGGER.warn("result mismatch on Foo#foo_one vs Foo#foo_two: #{val_one} | #{val_two}") },
+  on_compare: ->(val_one, val_two) { LOGGER.warn("comparing #{val_one} to #{val_two}" },
+  on_primary_error: ->(err, args) { LOGGER.warn("calling foo_one with #{args.to_json} produced error #{err.class.name}") },
+  on_secondary_error: ->(err, args) { LOGGER.warn("calling foo_two with #{args.to_json} produced error #{err.class.name}") },
+  on_hook_error: ->(err) { LOGGER.warn("OH NO! #{err.class.name}: #{err.message}") }
+)
+```
 
-implemented_twice(:foo, original: :foo_one, replacement: :foo_two, result: :original, rate: 0.01)
+The method takes these parameters:
+
+* The (only) positional parameter is the name of the method it will implement.
+  This _can_ match the 'primary' or 'secondary' name (but not both, obviously),
+  and if it does, `implemented_twice` will alias the existing method out of the
+  way (to `_bothisgood_primary_#{name}` or `_bothisgood_secondary_#{name}`).
+* The `primary:` parameter specifies a method name that will be called _and have
+  its result used as the result of the final method_ regardless of the comparison
+  outcome. Errors from the primary method are bubbled up as usual.
+* The `secondary:` parameter specifies a method name that will be called for
+  comparison's sake (though not necessarily every time). Errors raised from the
+  secondary method are swallowed.
+* The `rate:` parameter (default 1.0) specifies what fraction of the calls should
+  bother evaluating the secondary implementation for comparison. If the
+  implementation is costly (makes significant database calls, for example) and/or
+  invoked frequently, you probably want a lower rate, at least in production.
+* The `comparator:` parameter takes a callable, and yields two arguments to it
+  (the results of the two implementations); its result is either truthy or falsey.
+  By default, comparison is done using `==`.
+* The `on_mismatch:` parameter takes a callable (lamba or Proc generally). It will
+  yield the two values being compared, but can yield additional details depending
+  on the arity of the callable; arities 2, 3, and 4 are all supported, and will be
+  yielded the arguments supplied, and then a Hash of the implementation method
+  names like `{primary: :foo_one, secondary: :foo_two}`. It will be invoked any
+  time the results of the two implementations _differ_.
+* The `on_compare:` parameter takes the same shaped argument, but will be fired
+  any time both implementations are evaluated (so every time, unless `rate` is set)
+* The `on_primary_error:` parameter takes a callable and yields 1, 2, or 3
+  arguments to it, depending on its arity - those arguments are the StandardError
+  instance rescued, the args supplied to the implementation (as an array,
+  potentially with a Hash arg at the end for any kwargs), and the name of the
+  primary method. The exception will be re-raised after handling.
+* The `on_secondary_error:` parameter behaves identically (yielding the secondary
+  method name), but secondary exceptions are _not_ re-raised.
+* The `on_hook_error:` parameter is a callable that will be yielded _one_
+  parameter (the StandardError instance), and is invoked if an error is _raised_
+  during one of the other hooks. None of us write bug-free code, and the callbacks
+  supplied to `implemented_twice` are no exception. By default, those errors will
+  just be bubbled, but if you supply this hook, and it _returns the symbol
+  `:catch`_, the error will be swallowed. (`nil` or `truthy` might be more
+  natural, but it's also way easier to accidentally swallow errors that way).
+
+`implemented_twice` can additionally be called with three positional parameters;
+the second parameter is used as the `primary` method name, and the third parameter
+is used as the `secondary` method name. That means that, if you use a configuration
+object, you can just:
+
+```ruby
+include BothIsGood
+
+def foo_one = implementation(details)
+def foo_two = more_implementation(details)
+
+# defines `foo`, using `foo_one` as the primary implementation and `foo_two` as secondary.
+implemented_twice :foo, :foo_one, :foo_two
+```
+
+If it is called with _two_ positional parameters, it will use the first argument
+as both the final method name _and_ the primary implementation.
+
+```ruby
+include BothIsGood
+
+def foo = implementation(details)
+def foo_two = more_implementation(details)
+
+# Defines `foo`, using `foo` as the primary implementation and `foo_two` as secondary.
+# In the process, the original `foo` method is redefined as `_bothisgood_primary_foo`.
+implemented_twice :foo, :foo_two
 ```
 
 ## Configuration
 
-This can be done with a Configuration singleton, but you can also make multiple configurations and
-pass one into the method, if different teams use the gem in different ways.
+All of those parameters aside from the positional, `primary`, and `secondary` ones
+can be configured globally, or onto a BothIsGood::Configuration object, to avoid
+having to supply them constantly.
 
 ```ruby
-# on the singleton:
+# Global configuration
 BothIsGood.configure do |config|
-  config.on_mismatch do |method, implementations, values|
-    MyLogger.warn "Method #{method} produced different results for #{implementations.join(' and ')}: #{values.to_json}"
-  end
-
-  config.default_rate = 0.05
+  config.rate = 0.5
+  config.on_compare = ->(a, b) { LOGGER.puts "compared!" }
+  config.on_hook_error = ->(e) { LOGGER.puts "bad -.-" }
 end
 
-# On a separate configuration:
-MY_BIG_CONFIG = BothIsGood::Configuration.new do |config|
-  config.default_rate = 1.0
+# Local configuration - starting values are taken from the global config
+MY_BIG_CONFIG = BothIsGood::Configuration.new
+MY_BIG_CONFIG.rate = 0.7
+MY_BIG_CONFIG.on_secondary_error = ->(a, b) { LOGGER.puts "No" }
 
-  config.on_evaluated do |method, implementations, values|
-    Metrics.track("both_is_good.#{method}.evaluated")
-  end
+module MyFoo
+  include BothIsGood
+  self.both_is_good_configure(MY_BIG_CONFIG)
+end
+
+
+# In-class configuration - starting values are taken from the global config, or the
+# supplied config object if one is given.
+module MyBar
+  include BothIsGood
+  self.both_is_good_configure(rate: 0.02)
 end
 ```
-
-When a `config:` parameter is supplied on an `implemented_twice` method, or
-`self.both_is_good_config=` is called on the including class with a BothIsGood::Config
-instance, that configuration will be used; otherwise the singleton configuration will be.
-
-The options are available:
-
-* `on_evaluated` - a block to execute when the supplied implementations are executed. Note that if
-  a "rate" is applied, this will only fire when _both_ implementations are executed. The block will
-  receive the name of the method, an array of implementation names, and an array of result values.
-* `on_mismatch` - a block to execute when the supplied implementations are executed, and the results
-  do not match. This block will likewise receive the name of the method, an array of implementation
-  names, and an array of result values (which will differ).
-* `default_rate` - Overrides the default `rate` value for calls that don't specify one (the default
-  default-rate is 1.0).
-
-## Usage
-
-The primary usage is the `implemented_twice` method, exhibited above. It _requires_ an initial
-positional argument (the name of the method it will define), and the `original` and `replacement`
-named params. It accepts these arguments:
-
-* `method_name` - the initial (positional) argument; what method is this going to define?
-* `original`/`replacement` - the names of the two methods we will dispatch to. Note that they may
-  not refer to the same method, but one of them (typically `original`) _can_ match `method_name` -
-  BothIsGood will alias the existing method out of the way for you.
-* `result` - `:original`, `:replacement`, or a callable (`:original` by default). Which of the
-  calculated results will actually be returned as _the_ result? If this is a block, it will receive
-  `self`, and should return a boolean meaning "should we use the new implementation?".
-* `rate` - if the calculation is somewhat expensive, or run extremely frequently, we won't want
-  to run both implementations _every_ time. We'll be confident enough if we confirm that they
-  match on a random.. 10% of the executions, say. The "rate" is "what fraction of the time do we
-  run both implementations and compare them?" - it must be a number from 0 to 1 (1 by default).
-* `config` - nil, or an instance of BothIsGood::Configuration.
-
-You can supply a configuration by calling `self.both_is_good_config = MY_BIG_CONFIG` in the class
-(after including BothIsGood), and then every call defined on that class or its subclasses will
-use that configuration by default instead of the BothIsGood singleton config.
-
-There is a shorthand method available as well: `checked_implementation(:foo, :foo_new)` is
-equivalent to `implemented_twice(:foo, original: :foo, replacement: :foo_new)` - it will evaluate
-both (rate of the time), return the result from :foo, and trigger the configured hooks as
-appropriate.

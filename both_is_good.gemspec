@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.email = ["nevinera@gmail.com"]
 
   spec.summary = "A convenient way to give a method multiple implementations"
-  spec.description =  <<~DESC
+  spec.description = <<~DESC
     BothIsGood adds a clean way to run multiple implementations of a method,
     switching between them using a feature-flagging system or other static or
     runtime method, and potentially run multiple implementations to confirm
