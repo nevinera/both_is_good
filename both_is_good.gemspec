@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.metadata["source_code_uri"] = spec.homepage
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    "git ls-files -z"
+    `git ls-files -z`
       .split("\x0")
       .reject { |f| f.start_with?("spec") }
       .reject { |f| f.start_with?("Gemfile") }
