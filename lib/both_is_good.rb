@@ -32,18 +32,10 @@ module BothIsGood
         secondary = :"_bothisgood_secondary_#{name}"
       end
 
-      primary_name = primary
-      secondary_name = secondary
-      rate = opts.fetch(:rate, 1.0)
-      comparator = opts.fetch(:comparator, nil)
+      runner = ImplementedTwice.new(primary: primary, secondary: secondary, **opts)
 
       define_method(name) do |*args, **kwargs|
-        primary_result = send(primary_name, *args, **kwargs)
-        if rand < rate
-          secondary_result = send(secondary_name, *args, **kwargs)
-          comparator ? comparator.call(primary_result, secondary_result) : primary_result == secondary_result
-        end
-        primary_result
+        runner.call(self, *args, **kwargs)
       end
     end
   end
@@ -51,3 +43,4 @@ end
 
 require_relative "both_is_good/version"
 require_relative "both_is_good/configuration"
+require_relative "both_is_good/implemented_twice"

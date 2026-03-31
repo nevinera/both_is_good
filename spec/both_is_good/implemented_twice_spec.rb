@@ -1,189 +1,97 @@
-RSpec.describe BothIsGood::ClassMethods do
-  let(:including_class) do
-    Class.new do
-      include BothIsGood
-
-      def primary_impl(*args, **kwargs) = [:primary, args, kwargs]
-
-      def secondary_impl(*args, **kwargs) = [:secondary, args, kwargs]
-
-      implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+RSpec.describe BothIsGood::ImplementedTwice do
+  let(:target) do
+    Object.new.tap do |obj|
+      obj.define_singleton_method(:primary_impl) { |*args, **kwargs| :primary }
+      obj.define_singleton_method(:secondary_impl) { |*args, **kwargs| :secondary }
     end
   end
 
-  subject(:instance) { including_class.new }
+  let(:runner) do
+    described_class.new(primary: :primary_impl, secondary: :secondary_impl)
+  end
 
-  describe "#implemented_twice" do
-    it "defines the named method" do
-      expect(instance).to respond_to(:the_method)
-    end
+  it "returns the primary result" do
+    expect(runner.call(target)).to eq(:primary)
+  end
 
-    it "returns the primary result" do
-      expect(instance.the_method).to eq([:primary, [], {}])
-    end
+  it "calls secondary" do
+    expect(target).to receive(:secondary_impl).and_call_original
+    runner.call(target)
+  end
 
-    it "calls secondary" do
-      expect(instance).to receive(:secondary_impl).and_call_original
-      instance.the_method
-    end
+  it "passes args to primary" do
+    target.define_singleton_method(:primary_impl) { |*args, **kwargs| [:primary, args, kwargs] }
+    expect(runner.call(target, 1, 2, x: 3)).to eq([:primary, [1, 2], {x: 3}])
+  end
 
-    it "passes args to primary" do
-      expect(instance.the_method(1, 2)).to eq([:primary, [1, 2], {}])
-    end
+  it "passes args to secondary" do
+    expect(target).to receive(:secondary_impl).with(1, 2, x: 3)
+    runner.call(target, 1, 2, x: 3)
+  end
 
-    it "passes args to secondary" do
-      expect(instance).to receive(:secondary_impl).with(1, 2)
-      instance.the_method(1, 2)
-    end
-
-    it "passes kwargs to primary" do
-      expect(instance.the_method(x: 1)).to eq([:primary, [], {x: 1}])
-    end
-
-    it "passes kwargs to secondary" do
-      expect(instance).to receive(:secondary_impl).with(x: 1)
-      instance.the_method(x: 1)
-    end
-
+  describe "rate" do
     context "with rate: 1.0" do
-      let(:including_class) do
-        Class.new do
-          include BothIsGood
-
-          def primary_impl = :primary
-
-          def secondary_impl = :secondary
-
-          implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, rate: 1.0
-        end
-      end
+      let(:runner) { described_class.new(primary: :primary_impl, secondary: :secondary_impl, rate: 1.0) }
 
       it "always calls secondary" do
-        expect(instance).to receive(:secondary_impl).and_call_original
-        instance.the_method
+        expect(target).to receive(:secondary_impl).and_call_original
+        runner.call(target)
       end
     end
 
     context "with rate: 0.0" do
-      let(:including_class) do
-        Class.new do
-          include BothIsGood
-
-          def primary_impl = :primary
-
-          def secondary_impl = :secondary
-
-          implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, rate: 0.0
-        end
-      end
+      let(:runner) { described_class.new(primary: :primary_impl, secondary: :secondary_impl, rate: 0.0) }
 
       it "never calls secondary" do
-        expect(instance).not_to receive(:secondary_impl)
-        instance.the_method
+        expect(target).not_to receive(:secondary_impl)
+        runner.call(target)
       end
 
       it "still returns the primary result" do
-        expect(instance.the_method).to eq(:primary)
+        expect(runner.call(target)).to eq(:primary)
       end
     end
 
     context "with a fractional rate" do
-      let(:including_class) do
-        Class.new do
-          include BothIsGood
-
-          def primary_impl = :primary
-
-          def secondary_impl = :secondary
-
-          implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, rate: 0.5
-        end
-      end
+      let(:runner) { described_class.new(primary: :primary_impl, secondary: :secondary_impl, rate: 0.5) }
 
       it "calls secondary when rand is below the rate" do
-        allow(instance).to receive(:rand).and_return(0.49)
-        expect(instance).to receive(:secondary_impl).and_call_original
-        instance.the_method
+        allow(runner).to receive(:rand).and_return(0.49)
+        expect(target).to receive(:secondary_impl).and_call_original
+        runner.call(target)
       end
 
-      it "skips secondary when rand is above the rate" do
-        allow(instance).to receive(:rand).and_return(0.5)
-        expect(instance).not_to receive(:secondary_impl)
-        instance.the_method
+      it "skips secondary when rand is at or above the rate" do
+        allow(runner).to receive(:rand).and_return(0.5)
+        expect(target).not_to receive(:secondary_impl)
+        runner.call(target)
+      end
+    end
+  end
+
+  describe "comparator" do
+    let(:comparator) { ->(a, b) { a.even? == b.even? } }
+
+    let(:target) do
+      Object.new.tap do |obj|
+        obj.define_singleton_method(:primary_impl) { 2 }
+        obj.define_singleton_method(:secondary_impl) { 3 }
       end
     end
 
-    context "with a comparator" do
-      let(:comparator) { ->(a, b) { a.even? == b.even? } }
-
-      let(:including_class) do
-        comp = comparator
-        Class.new do
-          include BothIsGood
-
-          def primary_impl = 2
-
-          def secondary_impl = 3
-
-          implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, comparator: comp
-        end
-      end
-
-      it "calls the comparator with the primary and secondary results" do
-        expect(comparator).to receive(:call).with(2, 3).and_call_original
-        instance.the_method
-      end
-
-      it "does not call the comparator when secondary is skipped" do
-        allow(instance).to receive(:rand).and_return(1.0)
-        expect(comparator).not_to receive(:call)
-        instance.the_method
-      end
+    let(:runner) do
+      described_class.new(primary: :primary_impl, secondary: :secondary_impl, comparator: comparator)
     end
 
-    context "when name matches primary" do
-      let(:including_class) do
-        Class.new do
-          include BothIsGood
-
-          def the_method = :original
-
-          def secondary_impl = :secondary
-
-          implemented_twice :the_method, primary: :the_method, secondary: :secondary_impl
-        end
-      end
-
-      it "aliases the original method out of the way" do
-        expect(instance).to respond_to(:_bothisgood_primary_the_method)
-      end
-
-      it "returns the primary result" do
-        expect(instance.the_method).to eq(:original)
-      end
+    it "calls the comparator with the primary and secondary results" do
+      expect(comparator).to receive(:call).with(2, 3).and_call_original
+      runner.call(target)
     end
 
-    context "when name matches secondary" do
-      let(:including_class) do
-        Class.new do
-          include BothIsGood
-
-          def primary_impl = :primary
-
-          def the_method = :original
-
-          implemented_twice :the_method, primary: :primary_impl, secondary: :the_method
-        end
-      end
-
-      it "aliases the original method out of the way" do
-        expect(instance).to respond_to(:_bothisgood_secondary_the_method)
-      end
-
-      it "still calls the original secondary" do
-        expect(instance).to receive(:_bothisgood_secondary_the_method).and_call_original
-        instance.the_method
-      end
+    it "does not call the comparator when secondary is skipped" do
+      allow(runner).to receive(:rand).and_return(1.0)
+      expect(comparator).not_to receive(:call)
+      runner.call(target)
     end
   end
 end

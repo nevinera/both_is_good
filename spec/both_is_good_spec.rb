@@ -39,6 +39,77 @@ RSpec.describe BothIsGood do
       end
     end
 
+    describe "#implemented_twice" do
+      context "when name is distinct from primary and secondary" do
+        let(:including_class) do
+          Class.new do
+            include BothIsGood
+
+            def primary_impl = :primary
+
+            def secondary_impl = :secondary
+
+            implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+          end
+        end
+
+        subject(:instance) { including_class.new }
+
+        it "defines the named method" do
+          expect(instance).to respond_to(:the_method)
+        end
+
+        it "delegates to an ImplementedTwice runner" do
+          expect_any_instance_of(BothIsGood::ImplementedTwice).to receive(:call).and_call_original
+          instance.the_method
+        end
+      end
+
+      context "when name matches primary" do
+        let(:including_class) do
+          Class.new do
+            include BothIsGood
+
+            def the_method = :original
+
+            def secondary_impl = :secondary
+
+            implemented_twice :the_method, primary: :the_method, secondary: :secondary_impl
+          end
+        end
+
+        subject(:instance) { including_class.new }
+
+        it "aliases the original primary out of the way" do
+          expect(instance).to respond_to(:_bothisgood_primary_the_method)
+        end
+
+        it "returns the original primary result" do
+          expect(instance.the_method).to eq(:original)
+        end
+      end
+
+      context "when name matches secondary" do
+        let(:including_class) do
+          Class.new do
+            include BothIsGood
+
+            def primary_impl = :primary
+
+            def the_method = :original
+
+            implemented_twice :the_method, primary: :primary_impl, secondary: :the_method
+          end
+        end
+
+        subject(:instance) { including_class.new }
+
+        it "aliases the original secondary out of the way" do
+          expect(instance).to respond_to(:_bothisgood_secondary_the_method)
+        end
+      end
+    end
+
     describe "#both_is_good_configure" do
       let(:mock_global) { BothIsGood::Configuration.new(nil) }
 
