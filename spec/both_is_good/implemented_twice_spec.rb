@@ -45,6 +45,74 @@ RSpec.describe BothIsGood::ClassMethods do
       instance.the_method(x: 1)
     end
 
+    context "with rate: 1.0" do
+      let(:including_class) do
+        Class.new do
+          include BothIsGood
+
+          def primary_impl = :primary
+
+          def secondary_impl = :secondary
+
+          implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, rate: 1.0
+        end
+      end
+
+      it "always calls secondary" do
+        expect(instance).to receive(:secondary_impl).and_call_original
+        instance.the_method
+      end
+    end
+
+    context "with rate: 0.0" do
+      let(:including_class) do
+        Class.new do
+          include BothIsGood
+
+          def primary_impl = :primary
+
+          def secondary_impl = :secondary
+
+          implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, rate: 0.0
+        end
+      end
+
+      it "never calls secondary" do
+        expect(instance).not_to receive(:secondary_impl)
+        instance.the_method
+      end
+
+      it "still returns the primary result" do
+        expect(instance.the_method).to eq(:primary)
+      end
+    end
+
+    context "with a fractional rate" do
+      let(:including_class) do
+        Class.new do
+          include BothIsGood
+
+          def primary_impl = :primary
+
+          def secondary_impl = :secondary
+
+          implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, rate: 0.5
+        end
+      end
+
+      it "calls secondary when rand is below the rate" do
+        allow(instance).to receive(:rand).and_return(0.49)
+        expect(instance).to receive(:secondary_impl).and_call_original
+        instance.the_method
+      end
+
+      it "skips secondary when rand is above the rate" do
+        allow(instance).to receive(:rand).and_return(0.5)
+        expect(instance).not_to receive(:secondary_impl)
+        instance.the_method
+      end
+    end
+
     context "when name matches primary" do
       let(:including_class) do
         Class.new do

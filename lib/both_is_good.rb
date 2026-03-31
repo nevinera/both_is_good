@@ -21,7 +21,7 @@ module BothIsGood
       @both_is_good_configuration || BothIsGood.configuration
     end
 
-    def implemented_twice(name, primary:, secondary:)
+    def implemented_twice(name, primary:, secondary:, **opts)
       if name == primary
         alias_method :"_bothisgood_primary_#{name}", name
         primary = :"_bothisgood_primary_#{name}"
@@ -34,10 +34,11 @@ module BothIsGood
 
       primary_name = primary
       secondary_name = secondary
+      rate = opts.fetch(:rate, 1.0)
 
       define_method(name) do |*args, **kwargs|
         primary_result = send(primary_name, *args, **kwargs)
-        send(secondary_name, *args, **kwargs)
+        send(secondary_name, *args, **kwargs) if rand < rate
         primary_result
       end
     end
