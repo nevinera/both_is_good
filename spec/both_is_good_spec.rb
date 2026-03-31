@@ -89,6 +89,61 @@ RSpec.describe BothIsGood do
         end
       end
 
+      context "config cascade" do
+        let(:mock_global) { BothIsGood::Configuration.new(nil) }
+
+        before { allow(BothIsGood::Configuration).to receive(:global).and_return(mock_global) }
+
+        it "uses the global config when no class config or option is set" do
+          mock_global.rate = 0.0
+          klass = Class.new do
+            include BothIsGood
+
+            def primary_impl = :primary
+
+            def secondary_impl = :secondary
+
+            implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+          end
+          expect(klass.new.instance_eval { secondary_impl }).to eq(:secondary)
+          allow_any_instance_of(BothIsGood::Invocation).to receive(:rand).and_return(0.5)
+          # rate: 0.0 from global means secondary is never called
+          expect_any_instance_of(Object).not_to receive(:secondary_impl)
+          klass.new.the_method
+        end
+
+        it "uses the class config when set" do
+          hook = ->(a, b) {}
+          klass = Class.new do
+            include BothIsGood
+            both_is_good_configure(on_compare: hook)
+
+            def primary_impl = :primary
+
+            def secondary_impl = :secondary
+
+            implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+          end
+          expect(hook).to receive(:call).with(:primary, :secondary)
+          klass.new.the_method
+        end
+
+        it "call-site options override class config" do
+          klass = Class.new do
+            include BothIsGood
+            both_is_good_configure(rate: 0.0)
+
+            def primary_impl = :primary
+
+            def secondary_impl = :secondary
+
+            implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, rate: 1.0
+          end
+          expect_any_instance_of(klass).to receive(:secondary_impl).and_call_original
+          klass.new.the_method
+        end
+      end
+
       context "when name matches secondary" do
         let(:including_class) do
           Class.new do

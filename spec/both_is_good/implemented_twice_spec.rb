@@ -1,6 +1,8 @@
 RSpec.describe BothIsGood::ImplementedTwice do
   let(:owner_class) do
     Class.new do
+      include BothIsGood
+
       def primary_impl = :primary
 
       def secondary_impl = :secondary

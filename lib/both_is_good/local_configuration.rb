@@ -4,8 +4,9 @@ module BothIsGood
 
     attr_reader(*LOCAL_ATTRIBUTES)
 
-    def initialize(owner, primary:, secondary:, comparator: nil, **opts)
-      super(nil, **opts)
+    def initialize(base_config, owner:, primary:, secondary:, **opts)
+      comparator = opts.delete(:comparator)
+      super(base_config, **opts)
       @primary = validated_method(owner, :primary, primary)
       @secondary = validated_method(owner, :secondary, secondary)
       @comparator = validated_comparator(comparator)
