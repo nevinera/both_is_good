@@ -204,4 +204,64 @@ RSpec.describe BothIsGood::ImplementedTwice do
       end
     end
   end
+
+  describe "on_secondary_error" do
+    let(:error) { RuntimeError.new("boom") }
+
+    let(:raising_target) do
+      err = error
+      Object.new.tap do |obj|
+        obj.define_singleton_method(:primary_impl) { |*args, **kwargs| :primary }
+        obj.define_singleton_method(:secondary_impl) { |*args, **kwargs| raise err }
+      end
+    end
+
+    it "raises when supplied with an unsupported arity" do
+      expect {
+        described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_secondary_error: ->(a, b, c, d) {})
+      }.to raise_error(ArgumentError)
+    end
+
+    it "swallows secondary errors even without a hook" do
+      runner = described_class.new(primary: :primary_impl, secondary: :secondary_impl)
+      expect(runner.call(raising_target)).to eq(:primary)
+    end
+
+    it "does not call result hooks when secondary raises" do
+      hook = ->(a, b) {}
+      runner = described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_compare: hook)
+      expect(hook).not_to receive(:call)
+      runner.call(raising_target)
+    end
+
+    context "with arity 1" do
+      let(:hook) { ->(e) {} }
+      let(:runner) { described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_secondary_error: hook) }
+
+      it "is called with the error" do
+        expect(hook).to receive(:call).with(error)
+        runner.call(raising_target)
+      end
+    end
+
+    context "with arity 2" do
+      let(:hook) { ->(e, call_args) {} }
+      let(:runner) { described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_secondary_error: hook) }
+
+      it "is called with the error and call_args" do
+        expect(hook).to receive(:call).with(error, [1, 2])
+        runner.call(raising_target, 1, 2)
+      end
+    end
+
+    context "with arity 3" do
+      let(:hook) { ->(e, call_args, name) {} }
+      let(:runner) { described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_secondary_error: hook) }
+
+      it "is called with the error, call_args, and secondary method name" do
+        expect(hook).to receive(:call).with(error, [1, 2], :secondary_impl)
+        runner.call(raising_target, 1, 2)
+      end
+    end
+  end
 end
