@@ -177,4 +177,18 @@ RSpec.describe BothIsGood::Configuration do
       expect { config.on_hook_error = -> {} }.to raise_error(ArgumentError)
     end
   end
+
+  describe "inheriting from global configuration" do
+    let(:mock_global) { described_class.new(nil).tap { |c| c.rate = 0.25 } }
+
+    before { allow(described_class).to receive(:global).and_return(mock_global) }
+
+    it "inherits attributes from the global config" do
+      expect(described_class.new.rate).to eq(0.25)
+    end
+
+    it "can override inherited attributes" do
+      expect(described_class.new(nil, rate: 0.75).rate).to eq(0.75)
+    end
+  end
 end
