@@ -20,6 +20,27 @@ module BothIsGood
     def both_is_good_configuration
       @both_is_good_configuration || BothIsGood.configuration
     end
+
+    def implemented_twice(name, primary:, secondary:)
+      if name == primary
+        alias_method :"_bothisgood_primary_#{name}", name
+        primary = :"_bothisgood_primary_#{name}"
+      end
+
+      if name == secondary
+        alias_method :"_bothisgood_secondary_#{name}", name
+        secondary = :"_bothisgood_secondary_#{name}"
+      end
+
+      primary_name = primary
+      secondary_name = secondary
+
+      define_method(name) do |*args, **kwargs|
+        primary_result = send(primary_name, *args, **kwargs)
+        send(secondary_name, *args, **kwargs)
+        primary_result
+      end
+    end
   end
 end
 
