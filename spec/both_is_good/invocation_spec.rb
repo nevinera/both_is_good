@@ -1,17 +1,20 @@
 RSpec.describe BothIsGood::Invocation do
-  let(:target) do
-    Object.new.tap do |obj|
-      obj.define_singleton_method(:primary_impl) { |*args, **kwargs| :primary }
-      obj.define_singleton_method(:secondary_impl) { |*args, **kwargs| :secondary }
+  let(:owner_class) do
+    Class.new do
+      def primary_impl(*args, **kwargs) = :primary
+
+      def secondary_impl(*args, **kwargs) = :secondary
     end
   end
 
-  let(:config) do
-    {primary: :primary_impl, secondary: :secondary_impl, rate: 1.0,
-     comparator: nil, on_compare: nil, on_mismatch: nil, on_secondary_error: nil}
+  let(:target) { owner_class.new }
+  let(:config_opts) { {} }
+
+  let(:local_config) do
+    BothIsGood::LocalConfiguration.new(owner_class, primary: :primary_impl, secondary: :secondary_impl, **config_opts)
   end
 
-  subject(:invocation) { described_class.new(config, target, [], {}) }
+  subject(:invocation) { described_class.new(local_config, target, [], {}) }
 
   it "returns the primary result" do
     expect(invocation.run).to eq(:primary)
@@ -24,12 +27,12 @@ RSpec.describe BothIsGood::Invocation do
 
   it "passes args to primary" do
     target.define_singleton_method(:primary_impl) { |*args, **kwargs| [:primary, args, kwargs] }
-    expect(described_class.new(config, target, [1, 2], {x: 3}).run).to eq([:primary, [1, 2], {x: 3}])
+    expect(described_class.new(local_config, target, [1, 2], {x: 3}).run).to eq([:primary, [1, 2], {x: 3}])
   end
 
   it "passes args to secondary" do
     expect(target).to receive(:secondary_impl).with(1, 2, x: 3)
-    described_class.new(config, target, [1, 2], {x: 3}).run
+    described_class.new(local_config, target, [1, 2], {x: 3}).run
   end
 
   describe "rate" do
@@ -41,7 +44,7 @@ RSpec.describe BothIsGood::Invocation do
     end
 
     context "with rate: 0.0" do
-      let(:config) { super().merge(rate: 0.0) }
+      let(:config_opts) { {rate: 0.0} }
 
       it "never calls secondary" do
         expect(target).not_to receive(:secondary_impl)
@@ -54,7 +57,7 @@ RSpec.describe BothIsGood::Invocation do
     end
 
     context "with a fractional rate" do
-      let(:config) { super().merge(rate: 0.5) }
+      let(:config_opts) { {rate: 0.5} }
 
       it "calls secondary when rand is below the rate" do
         allow(invocation).to receive(:rand).and_return(0.49)
@@ -72,12 +75,13 @@ RSpec.describe BothIsGood::Invocation do
 
   describe "comparator" do
     let(:comparator) { ->(a, b) { a.even? == b.even? } }
-    let(:config) { super().merge(comparator: comparator) }
+    let(:config_opts) { {comparator: comparator} }
 
-    let(:target) do
-      Object.new.tap do |obj|
-        obj.define_singleton_method(:primary_impl) { |*args, **kwargs| 2 }
-        obj.define_singleton_method(:secondary_impl) { |*args, **kwargs| 3 }
+    let(:owner_class) do
+      Class.new do
+        def primary_impl(*args, **kwargs) = 2
+
+        def secondary_impl(*args, **kwargs) = 3
       end
     end
 
@@ -98,40 +102,43 @@ RSpec.describe BothIsGood::Invocation do
 
     it "is not called when secondary is skipped" do
       hook = ->(a, b) {}
-      invocation = described_class.new(config.merge(rate: 0.0, on_compare: hook), target, [], {})
+      config = BothIsGood::LocalConfiguration.new(owner_class, primary: :primary_impl, secondary: :secondary_impl, rate: 0.0, on_compare: hook)
       expect(hook).not_to receive(:call)
-      invocation.run
+      described_class.new(config, target, [], {}).run
     end
 
     context "with arity 2" do
-      let(:config) { super().merge(on_compare: ->(a, b) {}) }
+      let(:hook) { ->(a, b) {} }
+      let(:config_opts) { {on_compare: hook} }
 
       it "is called with the primary and secondary results" do
-        expect(config[:on_compare]).to receive(:call).with(:primary, :secondary)
+        expect(hook).to receive(:call).with(:primary, :secondary)
         invocation.run
       end
     end
 
     context "with arity 3" do
-      let(:config) { super().merge(on_compare: ->(a, b, n) {}) }
+      let(:hook) { ->(a, b, n) {} }
+      let(:config_opts) { {on_compare: hook} }
 
       it "is called with the results and names hash" do
-        expect(config[:on_compare]).to receive(:call).with(:primary, :secondary, names)
+        expect(hook).to receive(:call).with(:primary, :secondary, names)
         invocation.run
       end
     end
 
     context "with arity 4" do
-      let(:config) { super().merge(on_compare: ->(a, b, ca, n) {}) }
+      let(:hook) { ->(a, b, ca, n) {} }
+      let(:config_opts) { {on_compare: hook} }
 
       it "is called with the results, call_args, and names hash" do
-        expect(config[:on_compare]).to receive(:call).with(:primary, :secondary, [1, 2], names)
-        described_class.new(config, target, [1, 2], {}).run
+        expect(hook).to receive(:call).with(:primary, :secondary, [1, 2], names)
+        described_class.new(local_config, target, [1, 2], {}).run
       end
 
       it "includes kwargs in call_args" do
-        expect(config[:on_compare]).to receive(:call).with(:primary, :secondary, [1, {x: 2}], names)
-        described_class.new(config, target, [1], {x: 2}).run
+        expect(hook).to receive(:call).with(:primary, :secondary, [1, {x: 2}], names)
+        described_class.new(local_config, target, [1], {x: 2}).run
       end
     end
   end
@@ -141,46 +148,50 @@ RSpec.describe BothIsGood::Invocation do
 
     it "is not called when secondary is skipped" do
       hook = ->(a, b) {}
-      invocation = described_class.new(config.merge(rate: 0.0, on_mismatch: hook), target, [], {})
+      config = BothIsGood::LocalConfiguration.new(owner_class, primary: :primary_impl, secondary: :secondary_impl, rate: 0.0, on_mismatch: hook)
       expect(hook).not_to receive(:call)
-      invocation.run
+      described_class.new(config, target, [], {}).run
     end
 
     it "is not called when results match" do
       hook = ->(a, b) {}
-      matching_target = Object.new.tap do |obj|
-        obj.define_singleton_method(:primary_impl) { |*args, **kwargs| :same }
-        obj.define_singleton_method(:secondary_impl) { |*args, **kwargs| :same }
+      matching_class = Class.new do
+        def primary_impl(*args, **kwargs) = :same
+
+        def secondary_impl(*args, **kwargs) = :same
       end
-      invocation = described_class.new(config.merge(on_mismatch: hook), matching_target, [], {})
+      config = BothIsGood::LocalConfiguration.new(matching_class, primary: :primary_impl, secondary: :secondary_impl, on_mismatch: hook)
       expect(hook).not_to receive(:call)
-      invocation.run
+      described_class.new(config, matching_class.new, [], {}).run
     end
 
     context "with arity 2" do
-      let(:config) { super().merge(on_mismatch: ->(a, b) {}) }
+      let(:hook) { ->(a, b) {} }
+      let(:config_opts) { {on_mismatch: hook} }
 
       it "is called with the primary and secondary results" do
-        expect(config[:on_mismatch]).to receive(:call).with(:primary, :secondary)
+        expect(hook).to receive(:call).with(:primary, :secondary)
         invocation.run
       end
     end
 
     context "with arity 3" do
-      let(:config) { super().merge(on_mismatch: ->(a, b, n) {}) }
+      let(:hook) { ->(a, b, n) {} }
+      let(:config_opts) { {on_mismatch: hook} }
 
       it "is called with the results and names hash" do
-        expect(config[:on_mismatch]).to receive(:call).with(:primary, :secondary, names)
+        expect(hook).to receive(:call).with(:primary, :secondary, names)
         invocation.run
       end
     end
 
     context "with arity 4" do
-      let(:config) { super().merge(on_mismatch: ->(a, b, ca, n) {}) }
+      let(:hook) { ->(a, b, ca, n) {} }
+      let(:config_opts) { {on_mismatch: hook} }
 
       it "is called with the results, call_args, and names hash" do
-        expect(config[:on_mismatch]).to receive(:call).with(:primary, :secondary, [1, 2], names)
-        described_class.new(config, target, [1, 2], {}).run
+        expect(hook).to receive(:call).with(:primary, :secondary, [1, 2], names)
+        described_class.new(local_config, target, [1, 2], {}).run
       end
     end
   end
@@ -188,15 +199,13 @@ RSpec.describe BothIsGood::Invocation do
   describe "on_secondary_error" do
     let(:error) { RuntimeError.new("boom") }
 
-    let(:raising_target) do
+    let(:owner_class) do
       err = error
-      Object.new.tap do |obj|
-        obj.define_singleton_method(:primary_impl) { |*args, **kwargs| :primary }
-        obj.define_singleton_method(:secondary_impl) { |*args, **kwargs| raise err }
+      Class.new do
+        def primary_impl(*args, **kwargs) = :primary
+        define_method(:secondary_impl) { |*args, **kwargs| raise err }
       end
     end
-
-    subject(:invocation) { described_class.new(config, raising_target, [], {}) }
 
     it "swallows secondary errors even without a hook" do
       expect(invocation.run).to eq(:primary)
@@ -204,35 +213,38 @@ RSpec.describe BothIsGood::Invocation do
 
     it "does not call result hooks when secondary raises" do
       hook = ->(a, b) {}
-      invocation = described_class.new(config.merge(on_compare: hook), raising_target, [], {})
+      config = BothIsGood::LocalConfiguration.new(owner_class, primary: :primary_impl, secondary: :secondary_impl, on_compare: hook)
       expect(hook).not_to receive(:call)
-      invocation.run
+      described_class.new(config, target, [], {}).run
     end
 
     context "with arity 1" do
-      let(:config) { super().merge(on_secondary_error: ->(e) {}) }
+      let(:hook) { ->(e) {} }
+      let(:config_opts) { {on_secondary_error: hook} }
 
       it "is called with the error" do
-        expect(config[:on_secondary_error]).to receive(:call).with(error)
+        expect(hook).to receive(:call).with(error)
         invocation.run
       end
     end
 
     context "with arity 2" do
-      let(:config) { super().merge(on_secondary_error: ->(e, ca) {}) }
+      let(:hook) { ->(e, ca) {} }
+      let(:config_opts) { {on_secondary_error: hook} }
 
       it "is called with the error and call_args" do
-        expect(config[:on_secondary_error]).to receive(:call).with(error, [1, 2])
-        described_class.new(config, raising_target, [1, 2], {}).run
+        expect(hook).to receive(:call).with(error, [1, 2])
+        described_class.new(local_config, target, [1, 2], {}).run
       end
     end
 
     context "with arity 3" do
-      let(:config) { super().merge(on_secondary_error: ->(e, ca, n) {}) }
+      let(:hook) { ->(e, ca, n) {} }
+      let(:config_opts) { {on_secondary_error: hook} }
 
       it "is called with the error, call_args, and secondary method name" do
-        expect(config[:on_secondary_error]).to receive(:call).with(error, [1, 2], :secondary_impl)
-        described_class.new(config, raising_target, [1, 2], {}).run
+        expect(hook).to receive(:call).with(error, [1, 2], :secondary_impl)
+        described_class.new(local_config, target, [1, 2], {}).run
       end
     end
   end

@@ -2,8 +2,8 @@ module BothIsGood
   class Invocation
     include BothIsGood::Memoization
 
-    def initialize(config, target, args, kwargs)
-      @config = config
+    def initialize(local_config, target, args, kwargs)
+      @config = local_config
       @target = target
       @args = args
       @kwargs = kwargs
@@ -26,27 +26,27 @@ module BothIsGood
 
     private
 
-    memoize def primary = @config[:primary]
-    memoize def secondary = @config[:secondary]
+    memoize def primary = @config.primary
+    memoize def secondary = @config.secondary
 
-    memoize def trigger? = rand < @config[:rate]
+    memoize def trigger? = rand < @config.rate
 
-    memoize def primary_result = @target.send(@config[:primary], *@args, **@kwargs)
-    memoize def secondary_result = @target.send(@config[:secondary], *@args, **@kwargs)
+    memoize def primary_result = @target.send(@config.primary, *@args, **@kwargs)
+    memoize def secondary_result = @target.send(@config.secondary, *@args, **@kwargs)
 
     def on_secondary_error(error)
-      hook = @config[:on_secondary_error]
+      hook = @config.on_secondary_error
       invoke_error_hook(hook, error, secondary) if hook
     end
 
     def on_secondary_success
       matched = compare(primary_result, secondary_result)
-      invoke_result_hook(@config[:on_compare], primary_result, secondary_result) if @config[:on_compare]
-      invoke_result_hook(@config[:on_mismatch], primary_result, secondary_result) if @config[:on_mismatch] && !matched
+      invoke_result_hook(@config.on_compare, primary_result, secondary_result) if @config.on_compare
+      invoke_result_hook(@config.on_mismatch, primary_result, secondary_result) if @config.on_mismatch && !matched
     end
 
     def compare(primary_result, secondary_result)
-      comparator = @config[:comparator]
+      comparator = @config.comparator
       comparator ? comparator.call(primary_result, secondary_result) : primary_result == secondary_result
     end
 

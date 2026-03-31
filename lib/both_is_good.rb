@@ -32,7 +32,7 @@ module BothIsGood
         secondary = :"_bothisgood_secondary_#{name}"
       end
 
-      runner = ImplementedTwice.new(primary: primary, secondary: secondary, **opts)
+      runner = ImplementedTwice.new(self, primary: primary, secondary: secondary, **opts)
 
       define_method(name) do |*args, **kwargs|
         runner.call(self, *args, **kwargs)
@@ -43,6 +43,7 @@ end
 
 require_relative "both_is_good/version"
 require_relative "both_is_good/configuration"
+require_relative "both_is_good/local_configuration"
 require_relative "both_is_good/memoization"
 require_relative "both_is_good/invocation"
 require_relative "both_is_good/implemented_twice"
