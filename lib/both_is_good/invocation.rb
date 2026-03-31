@@ -43,18 +43,43 @@ module BothIsGood
 
     def on_primary_error(error)
       hook = @config.on_primary_error
-      invoke_error_hook(hook, error, primary) if hook
+      with_hook_error_handling { invoke_error_hook(hook, error, primary) } if hook
     end
 
     def on_secondary_error(error)
-      hook = @config.on_secondary_error
-      invoke_error_hook(hook, error, secondary) if hook
+      return unless @config.on_secondary_error
+
+      with_hook_error_handling do
+        invoke_error_hook(@config.on_secondary_error, error, secondary)
+      end
     end
 
     def on_secondary_success
       matched = compare(primary_result, secondary_result)
-      invoke_result_hook(@config.on_compare, primary_result, secondary_result) if @config.on_compare
-      invoke_result_hook(@config.on_mismatch, primary_result, secondary_result) if @config.on_mismatch && !matched
+      on_compare
+      on_mismatch unless matched
+    end
+
+    def on_compare
+      return unless @config.on_compare
+
+      with_hook_error_handling do
+        invoke_result_hook(@config.on_compare, primary_result, secondary_result)
+      end
+    end
+
+    def on_mismatch
+      return unless @config.on_mismatch
+
+      with_hook_error_handling do
+        invoke_result_hook(@config.on_mismatch, primary_result, secondary_result)
+      end
+    end
+
+    def with_hook_error_handling
+      yield
+    rescue => e
+      @config.on_hook_error&.call(e)
     end
 
     def compare(primary_result, secondary_result)

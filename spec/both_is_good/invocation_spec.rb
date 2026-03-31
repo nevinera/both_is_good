@@ -312,4 +312,33 @@ RSpec.describe BothIsGood::Invocation do
       end
     end
   end
+
+  describe "on_hook_error" do
+    let(:hook_error) { RuntimeError.new("hook boom") }
+
+    it "is called when a result hook raises" do
+      on_hook_error = ->(e) {}
+      bad_hook = ->(a, b) { raise hook_error }
+      config = BothIsGood::LocalConfiguration.new(owner_class, primary: :primary_impl, secondary: :secondary_impl, on_compare: bad_hook, on_hook_error: on_hook_error)
+      expect(on_hook_error).to receive(:call).with(hook_error)
+      described_class.new(config, target, [], {}).run
+    end
+
+    it "is called when an error hook raises" do
+      err = RuntimeError.new("secondary boom")
+      on_hook_error = ->(e) {}
+      bad_hook = ->(e) { raise hook_error }
+      raising_target = owner_class.new
+      raising_target.define_singleton_method(:secondary_impl) { |*a, **kw| raise err }
+      config = BothIsGood::LocalConfiguration.new(owner_class, primary: :primary_impl, secondary: :secondary_impl, on_secondary_error: bad_hook, on_hook_error: on_hook_error)
+      expect(on_hook_error).to receive(:call).with(hook_error)
+      described_class.new(config, raising_target, [], {}).run
+    end
+
+    it "swallows hook errors when not set" do
+      bad_hook = ->(a, b) { raise hook_error }
+      config = BothIsGood::LocalConfiguration.new(owner_class, primary: :primary_impl, secondary: :secondary_impl, on_compare: bad_hook)
+      expect(described_class.new(config, target, [], {}).run).to eq(:primary)
+    end
+  end
 end
