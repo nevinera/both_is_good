@@ -3,6 +3,8 @@ RSpec.describe BothIsGood::LocalConfiguration do
     Class.new do
       def primary_impl = :primary
 
+      private
+
       def secondary_impl = :secondary
     end
   end

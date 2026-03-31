@@ -16,7 +16,7 @@ module BothIsGood
 
     def validated_method(owner, role, name)
       raise ArgumentError, "#{role} must not be nil" if name.nil?
-      unless owner.method_defined?(name)
+      unless owner.method_defined?(name) || owner.private_method_defined?(name)
         raise ArgumentError, "#{role} method #{name.inspect} is not defined on #{owner}"
       end
       name
