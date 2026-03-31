@@ -335,10 +335,10 @@ RSpec.describe BothIsGood::Invocation do
       described_class.new(config, raising_target, [], {}).run
     end
 
-    it "swallows hook errors when not set" do
+    it "re-raises hook errors when not set" do
       bad_hook = ->(a, b) { raise hook_error }
       config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, on_compare: bad_hook)
-      expect(described_class.new(config, target, [], {}).run).to eq(:primary)
+      expect { described_class.new(config, target, [], {}).run }.to raise_error(hook_error)
     end
   end
 end

@@ -33,7 +33,7 @@ implemented_twice(
   rate: 0.01,
   comparator: ->(val_one, val_two) { Math.abs(val_one - val_two) < 0.01 },
   on_mismatch: ->(val_one, val_two) { LOGGER.warn("result mismatch on Foo#foo_one vs Foo#foo_two: #{val_one} | #{val_two}") },
-  on_compare: ->(val_one, val_two) { LOGGER.warn("comparing #{val_one} to #{val_two}" },
+  on_compare: ->(val_one, val_two) { LOGGER.warn("comparing #{val_one} to #{val_two}") },
   on_primary_error: ->(err, args) { LOGGER.warn("calling foo_one with #{args.to_json} produced error #{err.class.name}") },
   on_secondary_error: ->(err, args) { LOGGER.warn("calling foo_two with #{args.to_json} produced error #{err.class.name}") },
   on_hook_error: ->(err) { LOGGER.warn("OH NO! #{err.class.name}: #{err.message}") }
@@ -77,10 +77,9 @@ The method takes these parameters:
 * The `on_hook_error:` parameter is a callable that will be yielded _one_
   parameter (the StandardError instance), and is invoked if an error is _raised_
   during one of the other hooks. None of us write bug-free code, and the callbacks
-  supplied to `implemented_twice` are no exception. By default, those errors will
-  just be bubbled, but if you supply this hook, and it _returns the symbol
-  `:catch`_, the error will be swallowed. (`nil` or `truthy` might be more
-  natural, but it's also way easier to accidentally swallow errors that way).
+  supplied to `implemented_twice` are no exception. Those errors will be swallowed
+  if `on_hook_error` is supplied (unless your hook raises the error!), but will be
+  bubbled otherwise.
 
 `implemented_twice` can additionally be called with three positional parameters;
 the second parameter is used as the `primary` method name, and the third parameter

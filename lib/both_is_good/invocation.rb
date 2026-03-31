@@ -79,7 +79,11 @@ module BothIsGood
     def with_hook_error_handling
       yield
     rescue => e
-      @config.on_hook_error&.call(e)
+      if @config.on_hook_error
+        @config.on_hook_error.call(e)
+      else
+        raise
+      end
     end
 
     def compare(primary_result, secondary_result)
