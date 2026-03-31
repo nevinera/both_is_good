@@ -43,4 +43,6 @@ end
 
 require_relative "both_is_good/version"
 require_relative "both_is_good/configuration"
+require_relative "both_is_good/memoization"
+require_relative "both_is_good/invocation"
 require_relative "both_is_good/implemented_twice"
