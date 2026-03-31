@@ -11,16 +11,8 @@ module BothIsGood
     end
 
     def run
-      primary_result
-      if trigger?
-        begin
-          secondary_result
-        rescue => e
-          on_secondary_error(e)
-        else
-          on_secondary_success
-        end
-      end
+      invoke_primary!
+      invoke_secondary! if trigger?
       primary_result
     end
 
@@ -31,8 +23,28 @@ module BothIsGood
 
     memoize def trigger? = rand < @config.rate
 
+    def invoke_primary!
+      primary_result
+    rescue => e
+      on_primary_error(e)
+      raise
+    end
+
+    def invoke_secondary!
+      secondary_result
+    rescue => e
+      on_secondary_error(e)
+    else
+      on_secondary_success
+    end
+
     memoize def primary_result = @target.send(@config.primary, *@args, **@kwargs)
     memoize def secondary_result = @target.send(@config.secondary, *@args, **@kwargs)
+
+    def on_primary_error(error)
+      hook = @config.on_primary_error
+      invoke_error_hook(hook, error, primary) if hook
+    end
 
     def on_secondary_error(error)
       hook = @config.on_secondary_error

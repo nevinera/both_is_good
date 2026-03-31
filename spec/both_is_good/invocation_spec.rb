@@ -196,6 +196,70 @@ RSpec.describe BothIsGood::Invocation do
     end
   end
 
+  describe "on_primary_error" do
+    let(:error) { RuntimeError.new("boom") }
+
+    before do
+      err = error
+      target.define_singleton_method(:primary_impl) { |*args, **kwargs| raise err }
+    end
+
+    it "re-raises the primary error" do
+      expect { invocation.run }.to raise_error(error)
+    end
+
+    it "does not call secondary" do
+      expect(target).not_to receive(:secondary_impl)
+      begin
+        invocation.run
+      rescue
+        nil
+      end
+    end
+
+    context "with arity 1" do
+      let(:hook) { ->(e) {} }
+      let(:config_opts) { {on_primary_error: hook} }
+
+      it "is called with the error" do
+        expect(hook).to receive(:call).with(error)
+        begin
+          invocation.run
+        rescue
+          nil
+        end
+      end
+    end
+
+    context "with arity 2" do
+      let(:hook) { ->(e, ca) {} }
+      let(:config_opts) { {on_primary_error: hook} }
+
+      it "is called with the error and call_args" do
+        expect(hook).to receive(:call).with(error, [1, 2])
+        begin
+          described_class.new(local_config, target, [1, 2], {}).run
+        rescue
+          nil
+        end
+      end
+    end
+
+    context "with arity 3" do
+      let(:hook) { ->(e, ca, n) {} }
+      let(:config_opts) { {on_primary_error: hook} }
+
+      it "is called with the error, call_args, and primary method name" do
+        expect(hook).to receive(:call).with(error, [1, 2], :primary_impl)
+        begin
+          described_class.new(local_config, target, [1, 2], {}).run
+        rescue
+          nil
+        end
+      end
+    end
+  end
+
   describe "on_secondary_error" do
     let(:error) { RuntimeError.new("boom") }
 
