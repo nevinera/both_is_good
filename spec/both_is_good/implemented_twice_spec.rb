@@ -113,6 +113,34 @@ RSpec.describe BothIsGood::ClassMethods do
       end
     end
 
+    context "with a comparator" do
+      let(:comparator) { ->(a, b) { a.even? == b.even? } }
+
+      let(:including_class) do
+        comp = comparator
+        Class.new do
+          include BothIsGood
+
+          def primary_impl = 2
+
+          def secondary_impl = 3
+
+          implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, comparator: comp
+        end
+      end
+
+      it "calls the comparator with the primary and secondary results" do
+        expect(comparator).to receive(:call).with(2, 3).and_call_original
+        instance.the_method
+      end
+
+      it "does not call the comparator when secondary is skipped" do
+        allow(instance).to receive(:rand).and_return(1.0)
+        expect(comparator).not_to receive(:call)
+        instance.the_method
+      end
+    end
+
     context "when name matches primary" do
       let(:including_class) do
         Class.new do

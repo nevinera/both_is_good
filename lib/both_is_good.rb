@@ -35,10 +35,14 @@ module BothIsGood
       primary_name = primary
       secondary_name = secondary
       rate = opts.fetch(:rate, 1.0)
+      comparator = opts.fetch(:comparator, nil)
 
       define_method(name) do |*args, **kwargs|
         primary_result = send(primary_name, *args, **kwargs)
-        send(secondary_name, *args, **kwargs) if rand < rate
+        if rand < rate
+          secondary_result = send(secondary_name, *args, **kwargs)
+          comparator ? comparator.call(primary_result, secondary_result) : primary_result == secondary_result
+        end
         primary_result
       end
     end
