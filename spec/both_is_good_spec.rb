@@ -40,6 +40,40 @@ RSpec.describe BothIsGood do
     end
 
     describe "#implemented_twice" do
+      describe "argument validation" do
+        let(:base_class) do
+          Class.new do
+            include BothIsGood
+
+            def foo = :foo
+
+            def bar = :bar
+
+            def baz = :baz
+          end
+        end
+
+        it "raises when no name is supplied" do
+          expect { base_class.implemented_twice }.to raise_error(ArgumentError)
+        end
+
+        it "raises when no secondary is supplied" do
+          expect { base_class.implemented_twice(:foo) }.to raise_error(ArgumentError)
+        end
+
+        it "raises when primary and secondary are the same" do
+          expect { base_class.implemented_twice(:baz, primary: :foo, secondary: :foo) }.to raise_error(ArgumentError)
+        end
+
+        it "raises when mixing positional and keyword primary/secondary" do
+          expect { base_class.implemented_twice(:baz, :bar, primary: :foo) }.to raise_error(ArgumentError)
+        end
+
+        it "raises with more than 3 positional arguments" do
+          expect { base_class.implemented_twice(:baz, :foo, :bar, :baz) }.to raise_error(ArgumentError)
+        end
+      end
+
       context "when name is distinct from primary and secondary" do
         let(:including_class) do
           Class.new do
@@ -86,6 +120,46 @@ RSpec.describe BothIsGood do
 
         it "returns the original primary result" do
           expect(instance.the_method).to eq(:original)
+        end
+      end
+
+      context "with two positional args" do
+        let(:including_class) do
+          Class.new do
+            include BothIsGood
+
+            def foo = :primary
+
+            def foo_two = :secondary
+
+            implemented_twice :foo, :foo_two
+          end
+        end
+
+        it "uses the first arg as both the method name and primary" do
+          expect(including_class.new.foo).to eq(:primary)
+        end
+
+        it "aliases the original primary out of the way" do
+          expect(including_class.new).to respond_to(:_bothisgood_primary_foo)
+        end
+      end
+
+      context "with three positional args" do
+        let(:including_class) do
+          Class.new do
+            include BothIsGood
+
+            def foo_one = :primary
+
+            def foo_two = :secondary
+
+            implemented_twice :foo, :foo_one, :foo_two
+          end
+        end
+
+        it "defines the named method delegating to primary" do
+          expect(including_class.new.foo).to eq(:primary)
         end
       end
 
