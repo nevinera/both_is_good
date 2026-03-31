@@ -98,6 +98,12 @@ RSpec.describe BothIsGood::ImplementedTwice do
   describe "on_compare" do
     let(:names) { {primary: :primary_impl, secondary: :secondary_impl} }
 
+    it "raises when supplied with an unsupported arity" do
+      expect {
+        described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_compare: ->(a) {})
+      }.to raise_error(ArgumentError)
+    end
+
     it "is not called when secondary is skipped" do
       hook = ->(a, b) {}
       runner = described_class.new(primary: :primary_impl, secondary: :secondary_impl, rate: 0.0, on_compare: hook)
@@ -137,6 +143,64 @@ RSpec.describe BothIsGood::ImplementedTwice do
       it "includes kwargs in call_args" do
         expect(hook).to receive(:call).with(:primary, :secondary, [1, {x: 2}], names)
         runner.call(target, 1, x: 2)
+      end
+    end
+  end
+
+  describe "on_mismatch" do
+    let(:names) { {primary: :primary_impl, secondary: :secondary_impl} }
+
+    it "raises when supplied with an unsupported arity" do
+      expect {
+        described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_mismatch: ->(a) {})
+      }.to raise_error(ArgumentError)
+    end
+
+    it "is not called when secondary is skipped" do
+      hook = ->(a, b) {}
+      runner = described_class.new(primary: :primary_impl, secondary: :secondary_impl, rate: 0.0, on_mismatch: hook)
+      expect(hook).not_to receive(:call)
+      runner.call(target)
+    end
+
+    it "is not called when results match" do
+      hook = ->(a, b) {}
+      matching_target = Object.new.tap do |obj|
+        obj.define_singleton_method(:primary_impl) { |*args, **kwargs| :same }
+        obj.define_singleton_method(:secondary_impl) { |*args, **kwargs| :same }
+      end
+      runner = described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_mismatch: hook)
+      expect(hook).not_to receive(:call)
+      runner.call(matching_target)
+    end
+
+    context "with arity 2" do
+      let(:hook) { ->(a, b) {} }
+      let(:runner) { described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_mismatch: hook) }
+
+      it "is called with the primary and secondary results" do
+        expect(hook).to receive(:call).with(:primary, :secondary)
+        runner.call(target)
+      end
+    end
+
+    context "with arity 3" do
+      let(:hook) { ->(a, b, n) {} }
+      let(:runner) { described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_mismatch: hook) }
+
+      it "is called with the results and names hash" do
+        expect(hook).to receive(:call).with(:primary, :secondary, names)
+        runner.call(target)
+      end
+    end
+
+    context "with arity 4" do
+      let(:hook) { ->(a, b, call_args, n) {} }
+      let(:runner) { described_class.new(primary: :primary_impl, secondary: :secondary_impl, on_mismatch: hook) }
+
+      it "is called with the results, call_args, and names hash" do
+        expect(hook).to receive(:call).with(:primary, :secondary, [1, 2], names)
+        runner.call(target, 1, 2)
       end
     end
   end
