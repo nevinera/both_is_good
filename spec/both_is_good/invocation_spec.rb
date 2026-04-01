@@ -74,6 +74,69 @@ RSpec.describe BothIsGood::Invocation do
     end
   end
 
+  describe "switch" do
+    context "when switch is nil" do
+      it "returns the original result" do
+        expect(invocation.run).to eq(:primary)
+      end
+    end
+
+    context "when switch returns false" do
+      let(:config_opts) { {switch: -> { false }} }
+
+      it "returns the original result" do
+        expect(invocation.run).to eq(:primary)
+      end
+    end
+
+    context "when switch returns true" do
+      let(:config_opts) { {switch: -> { true }} }
+
+      it "returns the replacement result" do
+        expect(invocation.run).to eq(:secondary)
+      end
+
+      it "still calls original at the given rate" do
+        allow(invocation).to receive(:rand).and_return(0.0)
+        expect(target).to receive(:primary_impl).and_call_original
+        invocation.run
+      end
+
+      it "does not call original when rate gates it out" do
+        allow(invocation).to receive(:rand).and_return(1.0)
+        expect(target).not_to receive(:primary_impl)
+        invocation.run
+      end
+
+      it "yields (replacement_result, original_result) to on_compare" do
+        hook = ->(a, b) {}
+        config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, switch: -> { true }, on_compare: hook)
+        expect(hook).to receive(:call).with(:secondary, :primary)
+        described_class.new(config, invocation_target, [], {}).run
+      end
+    end
+
+    context "with arity-0 switch" do
+      let(:switch) { -> { true } }
+      let(:config_opts) { {switch: switch} }
+
+      it "calls switch with no arguments" do
+        expect(switch).to receive(:call).with(no_args).and_call_original
+        invocation.run
+      end
+    end
+
+    context "with arity-2 switch" do
+      let(:switch) { ->(klass, name) { false } }
+      let(:config_opts) { {switch: switch} }
+
+      it "calls switch with the target class and method name" do
+        expect(switch).to receive(:call).with(owner_class, :the_method).and_call_original
+        invocation.run
+      end
+    end
+  end
+
   describe "comparator" do
     let(:comparator) { ->(a, b) { a.even? == b.even? } }
     let(:config_opts) { {comparator: comparator} }

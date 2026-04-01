@@ -18,8 +18,18 @@ module BothIsGood
 
     private
 
-    memoize def primary = @config.original
-    memoize def secondary = @config.replacement
+    memoize def switched?
+      if @config.switch.nil?
+        false
+      elsif @config.switch.arity == 0
+        @config.switch.call
+      else
+        @config.switch.call(@target.target_class, @target.method_name)
+      end
+    end
+
+    memoize def primary = switched? ? @config.replacement : @config.original
+    memoize def secondary = switched? ? @config.original : @config.replacement
 
     memoize def trigger? = rand < @config.rate
 
