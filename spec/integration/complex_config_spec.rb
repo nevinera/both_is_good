@@ -1,4 +1,4 @@
-RSpec.describe "complex config" do
+RSpec.describe "Integration test: complex config" do
   let(:log) { [] }
 
   describe "rate" do

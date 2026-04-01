@@ -1,4 +1,4 @@
-RSpec.describe "configuration constant" do
+RSpec.describe "Integration test: configuration constant" do
   let(:mismatches) { [] }
 
   let(:config) do

@@ -1,4 +1,4 @@
-RSpec.describe "convenience config" do
+RSpec.describe "Integration test: convenience config" do
   describe "two-positional form" do
     let(:klass) do
       Class.new do

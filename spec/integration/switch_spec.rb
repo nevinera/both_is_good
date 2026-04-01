@@ -1,4 +1,4 @@
-RSpec.describe "switch" do
+RSpec.describe "Integration test: dynamic switching" do
   let(:log) { [] }
   let(:switched) { [false] }
 
