@@ -57,16 +57,16 @@ RSpec.describe BothIsGood do
           expect { base_class.implemented_twice }.to raise_error(ArgumentError)
         end
 
-        it "raises when no secondary is supplied" do
+        it "raises when no replacement is supplied" do
           expect { base_class.implemented_twice(:foo) }.to raise_error(ArgumentError)
         end
 
-        it "raises when primary and secondary are the same" do
-          expect { base_class.implemented_twice(:baz, primary: :foo, secondary: :foo) }.to raise_error(ArgumentError)
+        it "raises when original and replacement are the same" do
+          expect { base_class.implemented_twice(:baz, original: :foo, replacement: :foo) }.to raise_error(ArgumentError)
         end
 
-        it "raises when mixing positional and keyword primary/secondary" do
-          expect { base_class.implemented_twice(:baz, :bar, primary: :foo) }.to raise_error(ArgumentError)
+        it "raises when mixing positional and keyword original:/replacement:" do
+          expect { base_class.implemented_twice(:baz, :bar, original: :foo) }.to raise_error(ArgumentError)
         end
 
         it "raises with more than 3 positional arguments" do
@@ -74,7 +74,7 @@ RSpec.describe BothIsGood do
         end
       end
 
-      context "when name is distinct from primary and secondary" do
+      context "when name is distinct from original and replacement" do
         let(:including_class) do
           Class.new do
             include BothIsGood
@@ -83,7 +83,7 @@ RSpec.describe BothIsGood do
 
             def secondary_impl = :secondary
 
-            implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+            implemented_twice :the_method, original: :primary_impl, replacement: :secondary_impl
           end
         end
 
@@ -99,7 +99,7 @@ RSpec.describe BothIsGood do
         end
       end
 
-      context "when name matches primary" do
+      context "when name matches original" do
         let(:including_class) do
           Class.new do
             include BothIsGood
@@ -108,17 +108,17 @@ RSpec.describe BothIsGood do
 
             def secondary_impl = :secondary
 
-            implemented_twice :the_method, primary: :the_method, secondary: :secondary_impl
+            implemented_twice :the_method, original: :the_method, replacement: :secondary_impl
           end
         end
 
         subject(:instance) { including_class.new }
 
-        it "aliases the original primary out of the way" do
-          expect(instance).to respond_to(:_bothisgood_primary_the_method)
+        it "aliases the original method out of the way" do
+          expect(instance).to respond_to(:_bothisgood_original_the_method)
         end
 
-        it "returns the original primary result" do
+        it "returns the original result" do
           expect(instance.the_method).to eq(:original)
         end
       end
@@ -136,12 +136,12 @@ RSpec.describe BothIsGood do
           end
         end
 
-        it "uses the first arg as both the method name and primary" do
+        it "uses the first arg as both the method name and original" do
           expect(including_class.new.foo).to eq(:primary)
         end
 
-        it "aliases the original primary out of the way" do
-          expect(including_class.new).to respond_to(:_bothisgood_primary_foo)
+        it "aliases the original method out of the way" do
+          expect(including_class.new).to respond_to(:_bothisgood_original_foo)
         end
       end
 
@@ -158,7 +158,7 @@ RSpec.describe BothIsGood do
           end
         end
 
-        it "defines the named method delegating to primary" do
+        it "defines the named method delegating to original" do
           expect(including_class.new.foo).to eq(:primary)
         end
       end
@@ -177,7 +177,7 @@ RSpec.describe BothIsGood do
 
             def secondary_impl = :secondary
 
-            implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+            implemented_twice :the_method, original: :primary_impl, replacement: :secondary_impl
           end
           expect(klass.new.instance_eval { secondary_impl }).to eq(:secondary)
           allow_any_instance_of(BothIsGood::Invocation).to receive(:rand).and_return(0.5)
@@ -196,7 +196,7 @@ RSpec.describe BothIsGood do
 
             def secondary_impl = :secondary
 
-            implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+            implemented_twice :the_method, original: :primary_impl, replacement: :secondary_impl
           end
           expect(hook).to receive(:call).with(:primary, :secondary)
           klass.new.the_method
@@ -211,14 +211,14 @@ RSpec.describe BothIsGood do
 
             def secondary_impl = :secondary
 
-            implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl, rate: 1.0
+            implemented_twice :the_method, original: :primary_impl, replacement: :secondary_impl, rate: 1.0
           end
           expect_any_instance_of(klass).to receive(:secondary_impl).and_call_original
           klass.new.the_method
         end
       end
 
-      context "when name matches secondary" do
+      context "when name matches replacement" do
         let(:including_class) do
           Class.new do
             include BothIsGood
@@ -227,14 +227,14 @@ RSpec.describe BothIsGood do
 
             def the_method = :original
 
-            implemented_twice :the_method, primary: :primary_impl, secondary: :the_method
+            implemented_twice :the_method, original: :primary_impl, replacement: :the_method
           end
         end
 
         subject(:instance) { including_class.new }
 
-        it "aliases the original secondary out of the way" do
-          expect(instance).to respond_to(:_bothisgood_secondary_the_method)
+        it "aliases the replacement method out of the way" do
+          expect(instance).to respond_to(:_bothisgood_replacement_the_method)
         end
       end
     end

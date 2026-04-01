@@ -6,6 +6,10 @@ RSpec.describe BothIsGood::Configuration do
       expect(config.rate).to eq(1.0)
     end
 
+    it "defaults switch to nil" do
+      expect(config.switch).to be_nil
+    end
+
     it "defaults all hooks to nil" do
       expect(config.on_mismatch).to be_nil
       expect(config.on_compare).to be_nil
@@ -91,6 +95,26 @@ RSpec.describe BothIsGood::Configuration do
 
     it "rejects non-numeric values" do
       expect { config.rate = "0.5" }.to raise_error(ArgumentError)
+    end
+  end
+
+  describe "#switch=" do
+    it "accepts nil" do
+      expect { config.switch = nil }.not_to raise_error
+    end
+
+    it "accepts callables with arity 0 or 2" do
+      expect { config.switch = -> {} }.not_to raise_error
+      expect { config.switch = ->(klass, name) {} }.not_to raise_error
+    end
+
+    it "rejects callables with other arities" do
+      expect { config.switch = ->(a) {} }.to raise_error(ArgumentError)
+      expect { config.switch = ->(a, b, c) {} }.to raise_error(ArgumentError)
+    end
+
+    it "rejects non-callables" do
+      expect { config.switch = "always" }.to raise_error(ArgumentError)
     end
   end
 

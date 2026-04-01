@@ -1,14 +1,14 @@
 module BothIsGood
   class LocalConfiguration < Configuration
-    LOCAL_ATTRIBUTES = %i[primary secondary comparator].freeze
+    LOCAL_ATTRIBUTES = %i[original replacement comparator].freeze
 
     attr_reader(*LOCAL_ATTRIBUTES)
 
-    def initialize(base_config, owner:, primary:, secondary:, **opts)
+    def initialize(base_config, owner:, original:, replacement:, **opts)
       comparator = opts.delete(:comparator)
       super(base_config, **opts)
-      @primary = validated_method(owner, :primary, primary)
-      @secondary = validated_method(owner, :secondary, secondary)
+      @original = validated_method(owner, :original, original)
+      @replacement = validated_method(owner, :replacement, replacement)
       @comparator = validated_comparator(comparator)
     end
 

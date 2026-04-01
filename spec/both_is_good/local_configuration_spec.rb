@@ -10,63 +10,63 @@ RSpec.describe BothIsGood::LocalConfiguration do
   end
 
   subject(:local_config) do
-    described_class.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl)
+    described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl)
   end
 
   it "is a Configuration" do
     expect(local_config).to be_a(BothIsGood::Configuration)
   end
 
-  it "exposes primary" do
-    expect(local_config.primary).to eq(:primary_impl)
+  it "exposes original" do
+    expect(local_config.original).to eq(:primary_impl)
   end
 
-  it "exposes secondary" do
-    expect(local_config.secondary).to eq(:secondary_impl)
+  it "exposes replacement" do
+    expect(local_config.replacement).to eq(:secondary_impl)
   end
 
-  describe "primary validation" do
-    it "raises when primary is nil" do
-      expect { described_class.new(nil, owner: owner_class, primary: nil, secondary: :secondary_impl) }
+  describe "original validation" do
+    it "raises when original is nil" do
+      expect { described_class.new(nil, owner: owner_class, original: nil, replacement: :secondary_impl) }
         .to raise_error(ArgumentError)
     end
 
-    it "raises when primary method is not defined on owner" do
-      expect { described_class.new(nil, owner: owner_class, primary: :nonexistent, secondary: :secondary_impl) }
+    it "raises when original method is not defined on owner" do
+      expect { described_class.new(nil, owner: owner_class, original: :nonexistent, replacement: :secondary_impl) }
         .to raise_error(ArgumentError)
     end
   end
 
-  describe "secondary validation" do
-    it "raises when secondary is nil" do
-      expect { described_class.new(nil, owner: owner_class, primary: :primary_impl, secondary: nil) }
+  describe "replacement validation" do
+    it "raises when replacement is nil" do
+      expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: nil) }
         .to raise_error(ArgumentError)
     end
 
-    it "raises when secondary method is not defined on owner" do
-      expect { described_class.new(nil, owner: owner_class, primary: :primary_impl, secondary: :nonexistent) }
+    it "raises when replacement method is not defined on owner" do
+      expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :nonexistent) }
         .to raise_error(ArgumentError)
     end
   end
 
   describe "comparator validation" do
     it "accepts nil" do
-      expect { described_class.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, comparator: nil) }
+      expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: nil) }
         .not_to raise_error
     end
 
     it "accepts a callable with arity 2" do
-      expect { described_class.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, comparator: ->(a, b) {}) }
+      expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: ->(a, b) {}) }
         .not_to raise_error
     end
 
     it "raises when comparator has wrong arity" do
-      expect { described_class.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, comparator: ->(a) {}) }
+      expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: ->(a) {}) }
         .to raise_error(ArgumentError)
     end
 
     it "raises when comparator is not callable" do
-      expect { described_class.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, comparator: "not callable") }
+      expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: "not callable") }
         .to raise_error(ArgumentError)
     end
   end

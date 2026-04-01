@@ -1,4 +1,5 @@
 require_relative "both_is_good/memoization"
+require_relative "both_is_good/target"
 
 module BothIsGood
   def self.configuration = Configuration.global
@@ -23,13 +24,13 @@ module BothIsGood
       @both_is_good_configuration || BothIsGood.configuration
     end
 
-    def implemented_twice(*positional, primary: nil, secondary: nil, **opts)
-      implementer = DualImplementer.new(*positional, target: self, primary:, secondary:, **opts)
+    def implemented_twice(*positional, original: nil, replacement: nil, **opts)
+      implementer = DualImplementer.new(*positional, target: self, original:, replacement:, **opts)
       implementer.apply_aliases!
       runner = implementer.implementation
 
       define_method(implementer.name) do |*args, **kwargs|
-        runner.call(self, *args, **kwargs)
+        runner.call(BothIsGood::Target.new(self, implementer.name, self.class), *args, **kwargs)
       end
     end
   end
@@ -37,11 +38,11 @@ module BothIsGood
   class DualImplementer
     include Memoization
 
-    def initialize(*positional, target:, primary:, secondary:, **opts)
+    def initialize(*positional, target:, original:, replacement:, **opts)
       @target = target
       @positional = positional
-      @kw_primary = primary
-      @kw_secondary = secondary
+      @kw_original = original
+      @kw_replacement = replacement
       @opts = opts
 
       validate!
@@ -50,28 +51,28 @@ module BothIsGood
     attr_reader :positional, :target, :opts
 
     memoize def name = positional.first
-    memoize def primary = aliased_primary? ? :"_bothisgood_primary_#{name}" : original_primary
-    memoize def secondary = aliased_secondary? ? :"_bothisgood_secondary_#{name}" : original_secondary
+    memoize def original = aliased_original? ? :"_bothisgood_original_#{name}" : supplied_original
+    memoize def replacement = aliased_replacement? ? :"_bothisgood_replacement_#{name}" : supplied_replacement
 
     def apply_aliases!
-      target.alias_method(primary, name) if aliased_primary?
-      target.alias_method(secondary, name) if aliased_secondary?
+      target.alias_method(original, name) if aliased_original?
+      target.alias_method(replacement, name) if aliased_replacement?
     end
 
-    memoize def implementation = ImplementedTwice.new(target, primary:, secondary:, **opts)
+    memoize def implementation = ImplementedTwice.new(target, original:, replacement:, **opts)
 
     private
 
-    memoize def original_primary = @kw_primary || positional[-2]
-    memoize def original_secondary = @kw_secondary || positional.last
+    memoize def supplied_original = @kw_original || positional[-2]
+    memoize def supplied_replacement = @kw_replacement || positional.last
 
-    memoize def aliased_primary? = original_primary == name
-    memoize def aliased_secondary? = original_secondary == name
+    memoize def aliased_original? = supplied_original == name
+    memoize def aliased_replacement? = supplied_replacement == name
 
     def validate!
       validate_name_supplied!
-      validate_secondary_supplied!
-      validate_no_primary_secondary_match!
+      validate_replacement_supplied!
+      validate_no_original_replacement_match!
       validate_no_mixing!
       validate_no_extra_positional!
     end
@@ -81,20 +82,20 @@ module BothIsGood
       raise(ArgumentError, "the 'name' positional parameter is required")
     end
 
-    def validate_secondary_supplied!
-      return if @kw_secondary || positional.length >= 2
-      raise ArgumentError, "secondary is required, either as a positional argument or as a keyword argument"
+    def validate_replacement_supplied!
+      return if @kw_replacement || positional.length >= 2
+      raise ArgumentError, "replacement is required, either as a positional argument or as a keyword argument"
     end
 
-    def validate_no_primary_secondary_match!
-      return if original_primary != original_secondary
-      raise ArgumentError, "primary and secondary cannot be the same method"
+    def validate_no_original_replacement_match!
+      return if supplied_original != supplied_replacement
+      raise ArgumentError, "original and replacement cannot be the same method"
     end
 
     def validate_no_mixing!
       return if positional.length <= 1
-      return if @kw_primary.nil? && @kw_secondary.nil?
-      raise ArgumentError, "cannot mix positional and keyword primary:/secondary:"
+      return if @kw_original.nil? && @kw_replacement.nil?
+      raise ArgumentError, "cannot mix positional and keyword original:/replacement:"
     end
 
     def validate_no_extra_positional!

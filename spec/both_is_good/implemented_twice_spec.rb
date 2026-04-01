@@ -9,11 +9,11 @@ RSpec.describe BothIsGood::ImplementedTwice do
     end
   end
 
-  let(:runner) { described_class.new(owner_class, primary: :primary_impl, secondary: :secondary_impl) }
+  let(:runner) { described_class.new(owner_class, original: :primary_impl, replacement: :secondary_impl) }
 
   it "delegates call to an Invocation" do
     expect(BothIsGood::Invocation).to receive(:new).and_call_original
-    target = owner_class.new
-    runner.call(target)
+    instance = owner_class.new
+    runner.call(BothIsGood::Target.new(instance, :the_method, owner_class))
   end
 end

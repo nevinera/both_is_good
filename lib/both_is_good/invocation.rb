@@ -18,8 +18,18 @@ module BothIsGood
 
     private
 
-    memoize def primary = @config.primary
-    memoize def secondary = @config.secondary
+    memoize def switched?
+      if @config.switch.nil?
+        false
+      elsif @config.switch.arity == 0
+        @config.switch.call
+      else
+        @config.switch.call(@target.target_class, @target.method_name)
+      end
+    end
+
+    memoize def primary = switched? ? @config.replacement : @config.original
+    memoize def secondary = switched? ? @config.original : @config.replacement
 
     memoize def trigger? = rand < @config.rate
 
@@ -38,8 +48,8 @@ module BothIsGood
       on_secondary_success
     end
 
-    memoize def primary_result = @target.send(@config.primary, *@args, **@kwargs)
-    memoize def secondary_result = @target.send(@config.secondary, *@args, **@kwargs)
+    memoize def primary_result = @target.instance.send(primary, *@args, **@kwargs)
+    memoize def secondary_result = @target.instance.send(secondary, *@args, **@kwargs)
 
     def on_primary_error(error)
       hook = @config.on_primary_error

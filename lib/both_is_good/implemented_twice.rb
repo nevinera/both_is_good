@@ -1,8 +1,8 @@
 module BothIsGood
   class ImplementedTwice
-    def initialize(owner, primary:, secondary:, **opts)
+    def initialize(owner, original:, replacement:, **opts)
       base = owner.both_is_good_configuration
-      @local_config = LocalConfiguration.new(base, owner:, primary:, secondary:, **opts)
+      @local_config = LocalConfiguration.new(base, owner:, original:, replacement:, **opts)
     end
 
     def call(target, *args, **kwargs)
