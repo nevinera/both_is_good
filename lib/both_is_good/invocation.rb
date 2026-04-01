@@ -18,8 +18,8 @@ module BothIsGood
 
     private
 
-    memoize def primary = @config.primary
-    memoize def secondary = @config.secondary
+    memoize def primary = @config.original
+    memoize def secondary = @config.replacement
 
     memoize def trigger? = rand < @config.rate
 
@@ -38,8 +38,8 @@ module BothIsGood
       on_secondary_success
     end
 
-    memoize def primary_result = @target.send(@config.primary, *@args, **@kwargs)
-    memoize def secondary_result = @target.send(@config.secondary, *@args, **@kwargs)
+    memoize def primary_result = @target.send(primary, *@args, **@kwargs)
+    memoize def secondary_result = @target.send(secondary, *@args, **@kwargs)
 
     def on_primary_error(error)
       hook = @config.on_primary_error

@@ -23,13 +23,13 @@ def foo_two = more_implementation(details)
 
 # A minimal call. Note that with no global configuration this is not very valuable,
 # since if the implementations disagree, there's no hook implemented to _tell you_ that.
-implemented_twice(:foo, primary: :foo_one, secondary: :foo_two)
+implemented_twice(:foo, original: :foo_one, replacement: :foo_two)
 
 # A complex call using all of the available options:
 implemented_twice(
   :foo,
-  primary: :foo_one,
-  secondary: :foo_two,
+  original: :foo_one,
+  replacement: :foo_two,
   rate: 0.01,
   comparator: ->(val_one, val_two) { Math.abs(val_one - val_two) < 0.01 },
   on_mismatch: ->(val_one, val_two) { LOGGER.warn("result mismatch on Foo#foo_one vs Foo#foo_two: #{val_one} | #{val_two}") },
@@ -43,23 +43,23 @@ implemented_twice(
 The method takes these parameters:
 
 * The (only) positional parameter is the name of the method it will implement.
-  This _can_ match the 'primary' or 'secondary' name (but not both, obviously),
+  This _can_ match the `original:` or `replacement:` name (but not both, obviously),
   and if it does, `implemented_twice` will alias the existing method out of the
-  way (to `_bothisgood_primary_#{name}` or `_bothisgood_secondary_#{name}`).
-* The `primary:` parameter specifies a method name that will be called _and have
+  way (to `_bothisgood_original_#{name}` or `_bothisgood_replacement_#{name}`).
+* The `original:` parameter specifies a method name that will be called _and have
   its result used as the result of the final method_ regardless of the comparison
-  outcome. Errors from the primary method are bubbled up as usual.
-* The `secondary:` parameter specifies a method name that will be called for
+  outcome. Errors from the original method are bubbled up as usual.
+* The `replacement:` parameter specifies a method name that will be called for
   comparison's sake (though not necessarily every time). Errors raised from the
-  secondary method are swallowed.
+  replacement method are swallowed.
 * The `rate:` parameter (default 1.0) specifies what fraction of the calls should
-  bother evaluating the secondary implementation for comparison. If the
+  bother evaluating the replacement implementation for comparison. If the
   implementation is costly (makes significant database calls, for example) and/or
   invoked frequently, you probably want a lower rate, at least in production.
 * The `comparator:` parameter takes a callable, and yields two arguments to it
   (the results of the two implementations); its result is either truthy or falsey.
   By default, comparison is done using `==`.
-* The `on_mismatch:` parameter takes a callable (lamba or Proc generally). It will
+* The `on_mismatch:` parameter takes a callable (lambda or Proc generally). It will
   yield the two values being compared, but can yield additional details depending
   on the arity of the callable; arities 2, 3, and 4 are all supported, and will be
   yielded the arguments supplied, and then a Hash of the implementation method
@@ -71,9 +71,9 @@ The method takes these parameters:
   arguments to it, depending on its arity - those arguments are the StandardError
   instance rescued, the args supplied to the implementation (as an array,
   potentially with a Hash arg at the end for any kwargs), and the name of the
-  primary method. The exception will be re-raised after handling.
-* The `on_secondary_error:` parameter behaves identically (yielding the secondary
-  method name), but secondary exceptions are _not_ re-raised.
+  original method. The exception will be re-raised after handling.
+* The `on_secondary_error:` parameter behaves identically (yielding the replacement
+  method name), but replacement exceptions are _not_ re-raised.
 * The `on_hook_error:` parameter is a callable that will be yielded _one_
   parameter (the StandardError instance), and is invoked if an error is _raised_
   during one of the other hooks. None of us write bug-free code, and the callbacks
@@ -82,8 +82,8 @@ The method takes these parameters:
   bubbled otherwise.
 
 `implemented_twice` can additionally be called with three positional parameters;
-the second parameter is used as the `primary` method name, and the third parameter
-is used as the `secondary` method name. That means that, if you use a configuration
+the second parameter is used as the `original` method name, and the third parameter
+is used as the `replacement` method name. That means that, if you use a configuration
 object, you can just:
 
 ```ruby
@@ -92,12 +92,12 @@ include BothIsGood
 def foo_one = implementation(details)
 def foo_two = more_implementation(details)
 
-# defines `foo`, using `foo_one` as the primary implementation and `foo_two` as secondary.
+# defines `foo`, using `foo_one` as the original implementation and `foo_two` as replacement.
 implemented_twice :foo, :foo_one, :foo_two
 ```
 
 If it is called with _two_ positional parameters, it will use the first argument
-as both the final method name _and_ the primary implementation.
+as both the final method name _and_ the original implementation.
 
 ```ruby
 include BothIsGood
@@ -105,16 +105,16 @@ include BothIsGood
 def foo = implementation(details)
 def foo_two = more_implementation(details)
 
-# Defines `foo`, using `foo` as the primary implementation and `foo_two` as secondary.
-# In the process, the original `foo` method is redefined as `_bothisgood_primary_foo`.
+# Defines `foo`, using `foo` as the original implementation and `foo_two` as replacement.
+# In the process, the original `foo` method is aliased to `_bothisgood_original_foo`.
 implemented_twice :foo, :foo_two
 ```
 
 ## Configuration
 
-All of those parameters aside from the positional, `primary`, and `secondary` ones
-can be configured globally, or onto a BothIsGood::Configuration object, to avoid
-having to supply them constantly.
+All of those parameters aside from the positional, `original:`, and `replacement:`
+ones can be configured globally, or onto a BothIsGood::Configuration object, to
+avoid having to supply them constantly.
 
 ```ruby
 # Global configuration

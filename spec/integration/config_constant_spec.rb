@@ -19,7 +19,7 @@ RSpec.describe "configuration constant" do
 
       def secondary_impl = :secondary
 
-      implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+      implemented_twice :the_method, original: :primary_impl, replacement: :secondary_impl
     end
   end
 
@@ -39,8 +39,8 @@ RSpec.describe "configuration constant" do
       def secondary_impl = :secondary
 
       implemented_twice :the_method,
-        primary: :primary_impl,
-        secondary: :secondary_impl,
+        original: :primary_impl,
+        replacement: :secondary_impl,
         rate: 0.0
     end
     overriding_klass.new.the_method
@@ -57,7 +57,7 @@ RSpec.describe "configuration constant" do
 
       def secondary_impl = :a_secondary
 
-      implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+      implemented_twice :the_method, original: :primary_impl, replacement: :secondary_impl
     end
 
     klass_b = Class.new do
@@ -68,7 +68,7 @@ RSpec.describe "configuration constant" do
 
       def secondary_impl = :b_secondary
 
-      implemented_twice :the_method, primary: :primary_impl, secondary: :secondary_impl
+      implemented_twice :the_method, original: :primary_impl, replacement: :secondary_impl
     end
 
     klass_a.new.the_method

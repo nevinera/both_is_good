@@ -11,7 +11,7 @@ RSpec.describe BothIsGood::Invocation do
   let(:config_opts) { {} }
 
   let(:local_config) do
-    BothIsGood::LocalConfiguration.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, **config_opts)
+    BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, **config_opts)
   end
 
   subject(:invocation) { described_class.new(local_config, target, [], {}) }
@@ -102,7 +102,7 @@ RSpec.describe BothIsGood::Invocation do
 
     it "is not called when secondary is skipped" do
       hook = ->(a, b) {}
-      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, rate: 0.0, on_compare: hook)
+      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, rate: 0.0, on_compare: hook)
       expect(hook).not_to receive(:call)
       described_class.new(config, target, [], {}).run
     end
@@ -148,7 +148,7 @@ RSpec.describe BothIsGood::Invocation do
 
     it "is not called when secondary is skipped" do
       hook = ->(a, b) {}
-      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, rate: 0.0, on_mismatch: hook)
+      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, rate: 0.0, on_mismatch: hook)
       expect(hook).not_to receive(:call)
       described_class.new(config, target, [], {}).run
     end
@@ -160,7 +160,7 @@ RSpec.describe BothIsGood::Invocation do
 
         def secondary_impl(*args, **kwargs) = :same
       end
-      config = BothIsGood::LocalConfiguration.new(nil, owner: matching_class, primary: :primary_impl, secondary: :secondary_impl, on_mismatch: hook)
+      config = BothIsGood::LocalConfiguration.new(nil, owner: matching_class, original: :primary_impl, replacement: :secondary_impl, on_mismatch: hook)
       expect(hook).not_to receive(:call)
       described_class.new(config, matching_class.new, [], {}).run
     end
@@ -277,7 +277,7 @@ RSpec.describe BothIsGood::Invocation do
 
     it "does not call result hooks when secondary raises" do
       hook = ->(a, b) {}
-      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, on_compare: hook)
+      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, on_compare: hook)
       expect(hook).not_to receive(:call)
       described_class.new(config, target, [], {}).run
     end
@@ -319,7 +319,7 @@ RSpec.describe BothIsGood::Invocation do
     it "is called when a result hook raises" do
       on_hook_error = ->(e) {}
       bad_hook = ->(a, b) { raise hook_error }
-      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, on_compare: bad_hook, on_hook_error: on_hook_error)
+      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, on_compare: bad_hook, on_hook_error: on_hook_error)
       expect(on_hook_error).to receive(:call).with(hook_error)
       described_class.new(config, target, [], {}).run
     end
@@ -330,14 +330,14 @@ RSpec.describe BothIsGood::Invocation do
       bad_hook = ->(e) { raise hook_error }
       raising_target = owner_class.new
       raising_target.define_singleton_method(:secondary_impl) { |*a, **kw| raise err }
-      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, on_secondary_error: bad_hook, on_hook_error: on_hook_error)
+      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, on_secondary_error: bad_hook, on_hook_error: on_hook_error)
       expect(on_hook_error).to receive(:call).with(hook_error)
       described_class.new(config, raising_target, [], {}).run
     end
 
     it "re-raises hook errors when not set" do
       bad_hook = ->(a, b) { raise hook_error }
-      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, primary: :primary_impl, secondary: :secondary_impl, on_compare: bad_hook)
+      config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, on_compare: bad_hook)
       expect { described_class.new(config, target, [], {}).run }.to raise_error(hook_error)
     end
   end

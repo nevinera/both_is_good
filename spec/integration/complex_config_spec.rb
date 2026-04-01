@@ -12,8 +12,8 @@ RSpec.describe "complex config" do
         def secondary_impl = :secondary
 
         implemented_twice :the_method,
-          primary: :primary_impl,
-          secondary: :secondary_impl,
+          original: :primary_impl,
+          replacement: :secondary_impl,
           rate: 0.0,
           on_compare: ->(a, b) { events << [:compare, a, b] }
       end
@@ -36,8 +36,8 @@ RSpec.describe "complex config" do
         def secondary_impl = 11
 
         implemented_twice :the_method,
-          primary: :primary_impl,
-          secondary: :secondary_impl,
+          original: :primary_impl,
+          replacement: :secondary_impl,
           comparator: ->(a, b) { (a - b).abs <= 1 },
           on_mismatch: ->(a, b) { events << [:mismatch, a, b] }
       end
@@ -60,8 +60,8 @@ RSpec.describe "complex config" do
         def secondary_impl = :secondary
 
         implemented_twice :the_method,
-          primary: :primary_impl,
-          secondary: :secondary_impl,
+          original: :primary_impl,
+          replacement: :secondary_impl,
           on_compare: ->(a, b) { events << [:compare, a, b] }
       end
     end
@@ -84,8 +84,8 @@ RSpec.describe "complex config" do
         def secondary_impl = :secondary
 
         implemented_twice :the_method,
-          primary: :primary_impl,
-          secondary: :secondary_impl,
+          original: :primary_impl,
+          replacement: :secondary_impl,
           on_mismatch: ->(a, b) { events << [:mismatch, a, b] }
       end
     end
@@ -104,8 +104,8 @@ RSpec.describe "complex config" do
         def secondary_impl = :same
 
         implemented_twice :the_method,
-          primary: :primary_impl,
-          secondary: :secondary_impl,
+          original: :primary_impl,
+          replacement: :secondary_impl,
           on_mismatch: ->(_a, _b) { log << :mismatch }
       end
       matching_klass.new.the_method
@@ -124,8 +124,8 @@ RSpec.describe "complex config" do
         def secondary_impl = :secondary
 
         implemented_twice :the_method,
-          primary: :primary_impl,
-          secondary: :secondary_impl,
+          original: :primary_impl,
+          replacement: :secondary_impl,
           on_primary_error: ->(e) { events << [:primary_error, e.message] }
       end
     end
@@ -155,8 +155,8 @@ RSpec.describe "complex config" do
         def secondary_impl = raise("secondary failed")
 
         implemented_twice :the_method,
-          primary: :primary_impl,
-          secondary: :secondary_impl,
+          original: :primary_impl,
+          replacement: :secondary_impl,
           on_secondary_error: ->(e) { events << [:secondary_error, e.message] }
       end
     end
@@ -182,8 +182,8 @@ RSpec.describe "complex config" do
         def secondary_impl = :secondary
 
         implemented_twice :the_method,
-          primary: :primary_impl,
-          secondary: :secondary_impl,
+          original: :primary_impl,
+          replacement: :secondary_impl,
           on_mismatch: ->(_a, _b) { raise "hook failed" },
           on_hook_error: ->(e) { events << [:hook_error, e.message] }
       end
