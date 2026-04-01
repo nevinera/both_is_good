@@ -2,6 +2,7 @@ module BothIsGood
   class Configuration
     DEFAULTS = {
       rate: 1.0,
+      switch: nil,
       on_mismatch: nil,
       on_compare: nil,
       on_primary_error: nil,
@@ -30,6 +31,11 @@ module BothIsGood
         raise ArgumentError, "rate must be a number between 0.0 and 1.0, got #{value.inspect}"
       end
       @rate = value
+    end
+
+    def switch=(value)
+      validate_hook!(:switch, value, [0, 2])
+      @switch = value
     end
 
     def on_mismatch=(value)

@@ -38,8 +38,8 @@ module BothIsGood
       on_secondary_success
     end
 
-    memoize def primary_result = @target.send(primary, *@args, **@kwargs)
-    memoize def secondary_result = @target.send(secondary, *@args, **@kwargs)
+    memoize def primary_result = @target.instance.send(primary, *@args, **@kwargs)
+    memoize def secondary_result = @target.instance.send(secondary, *@args, **@kwargs)
 
     def on_primary_error(error)
       hook = @config.on_primary_error

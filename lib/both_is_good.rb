@@ -1,4 +1,5 @@
 require_relative "both_is_good/memoization"
+require_relative "both_is_good/target"
 
 module BothIsGood
   def self.configuration = Configuration.global
@@ -29,7 +30,7 @@ module BothIsGood
       runner = implementer.implementation
 
       define_method(implementer.name) do |*args, **kwargs|
-        runner.call(self, *args, **kwargs)
+        runner.call(BothIsGood::Target.new(self, implementer.name, self.class), *args, **kwargs)
       end
     end
   end
