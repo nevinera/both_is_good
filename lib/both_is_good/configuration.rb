@@ -39,12 +39,12 @@ module BothIsGood
     end
 
     def on_mismatch=(value)
-      validate_hook!(:on_mismatch, value, [2, 3, 4])
+      validate_hook!(:on_mismatch, value, [1])
       @on_mismatch = value
     end
 
     def on_compare=(value)
-      validate_hook!(:on_compare, value, [2, 3, 4])
+      validate_hook!(:on_compare, value, [1])
       @on_compare = value
     end
 

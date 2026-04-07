@@ -35,8 +35,8 @@ implemented_twice(
   rate: 0.01,
   switch: ->(ctx) { FeatureFlags.enabled?(:"enable_#{ctx.tag}") },
   comparator: ->(val_one, val_two) { Math.abs(val_one - val_two) < 0.01 },
-  on_mismatch: ->(val_one, val_two) { LOGGER.warn("mismatch: #{val_one} | #{val_two}") },
-  on_compare: ->(val_one, val_two) { LOGGER.warn("comparing #{val_one} to #{val_two}") },
+  on_mismatch: ->(ctx) { LOGGER.warn("mismatch: #{ctx.primary_result} | #{ctx.secondary_result}") },
+  on_compare: ->(ctx) { LOGGER.warn("comparing #{ctx.primary_result} to #{ctx.secondary_result}") },
   on_primary_error: ->(err, args) { LOGGER.warn("primary error #{err.class.name}") },
   on_secondary_error: ->(err, args) { LOGGER.warn("secondary error #{err.class.name}") },
   on_hook_error: ->(err) { LOGGER.warn("OH NO! #{err.class.name}: #{err.message}") }
@@ -70,16 +70,15 @@ The method takes these parameters:
 * The `comparator:` parameter takes a callable, and yields two arguments to
   it (the results of the two implementations); its result is truthy or falsey.
   By default, comparison is done using `==`.
-* The `on_mismatch:` parameter takes a callable (lambda or Proc generally).
-  It supports arities 2, 3, and 4. The first two arguments are always the
-  _primary_ result (the one being returned) and the _secondary_ result (the
-  shadow). **When `switch` is active, these are `(replacement, original)`,
-  not `(original, replacement)`.** Arity 3 also receives a names hash like
-  `{primary: :foo_one, secondary: :foo_two}` reflecting the current role
-  assignment. Arity 4 additionally receives the call args array before the
-  names hash. It fires any time the results _differ_.
-* The `on_compare:` parameter takes the same shaped argument, but fires any
+* The `on_mismatch:` parameter takes a callable that receives a
+  `BothIsGood::Context::Result`. It fires any time the results _differ_.
+* The `on_compare:` parameter takes the same shaped callable, but fires any
   time both implementations are evaluated (every time unless `rate` is set).
+
+  The result context exposes `primary_result`, `secondary_result`,
+  `primary_name`, `secondary_name`, `args`, `target_class`, `method_name`,
+  `target_class_name`, `target_class_string`, and `tag`. **When `switch` is
+  active, "primary" is the replacement and "secondary" is the original.**
 * The `on_primary_error:` parameter takes a callable and yields 1, 2, or 3
   arguments: the StandardError rescued, the args supplied (as an array,
   potentially with a Hash at the end for kwargs), and the name of the primary

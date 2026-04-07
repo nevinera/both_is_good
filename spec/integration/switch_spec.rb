@@ -17,8 +17,8 @@ RSpec.describe "Integration test: dynamic switching" do
         replacement: :replacement_impl,
         switch: -> { sw[0] },
         rate: 1.0,
-        on_compare: ->(a, b) { events << [:compare, a, b] },
-        on_mismatch: ->(a, b) { events << [:mismatch, a, b] }
+        on_compare: ->(ctx) { events << [:compare, ctx.primary_result, ctx.secondary_result] },
+        on_mismatch: ->(ctx) { events << [:mismatch, ctx.primary_result, ctx.secondary_result] }
     end
   end
 
@@ -55,7 +55,7 @@ RSpec.describe "Integration test: dynamic switching" do
       expect(log).to include([:mismatch, :replacement, :original])
     end
 
-    it "includes swapped names in the names hash" do
+    it "includes swapped names in the context" do
       names_seen = []
       sw = switched
       names_klass = Class.new do
@@ -69,10 +69,10 @@ RSpec.describe "Integration test: dynamic switching" do
           original: :original_impl,
           replacement: :replacement_impl,
           switch: -> { sw[0] },
-          on_compare: ->(_a, _b, names) { names_seen << names }
+          on_compare: ->(ctx) { names_seen << [ctx.primary_name, ctx.secondary_name] }
       end
       names_klass.new.the_method
-      expect(names_seen).to eq([{primary: :replacement_impl, secondary: :original_impl}])
+      expect(names_seen).to eq([[:replacement_impl, :original_impl]])
     end
   end
 

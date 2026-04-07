@@ -54,7 +54,7 @@ RSpec.describe "Integration test: convenience config" do
         implemented_twice :the_method,
           original: :primary_impl,
           replacement: :secondary_impl,
-          on_mismatch: ->(a, b) { log << [a, b] }
+          on_mismatch: ->(ctx) { log << [ctx.primary_result, ctx.secondary_result] }
       end
     end
 

@@ -123,15 +123,13 @@ RSpec.describe BothIsGood::Configuration do
       expect { config.on_mismatch = nil }.not_to raise_error
     end
 
-    it "accepts callables with arity 2, 3, or 4" do
-      expect { config.on_mismatch = ->(a, b) {} }.not_to raise_error
-      expect { config.on_mismatch = ->(a, b, c) {} }.not_to raise_error
-      expect { config.on_mismatch = ->(a, b, c, d) {} }.not_to raise_error
+    it "accepts callables with arity 1" do
+      expect { config.on_mismatch = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.on_mismatch = ->(a) {} }.to raise_error(ArgumentError)
-      expect { config.on_mismatch = ->(a, b, c, d, e) {} }.to raise_error(ArgumentError)
+      expect { config.on_mismatch = ->(a, b) {} }.to raise_error(ArgumentError)
+      expect { config.on_mismatch = -> {} }.to raise_error(ArgumentError)
     end
 
     it "rejects non-callables" do
@@ -144,14 +142,13 @@ RSpec.describe BothIsGood::Configuration do
       expect { config.on_compare = nil }.not_to raise_error
     end
 
-    it "accepts callables with arity 2, 3, or 4" do
-      expect { config.on_compare = ->(a, b) {} }.not_to raise_error
-      expect { config.on_compare = ->(a, b, c) {} }.not_to raise_error
-      expect { config.on_compare = ->(a, b, c, d) {} }.not_to raise_error
+    it "accepts callables with arity 1" do
+      expect { config.on_compare = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.on_compare = ->(a) {} }.to raise_error(ArgumentError)
+      expect { config.on_compare = ->(a, b) {} }.to raise_error(ArgumentError)
+      expect { config.on_compare = -> {} }.to raise_error(ArgumentError)
     end
   end
 

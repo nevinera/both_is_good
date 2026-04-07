@@ -74,7 +74,7 @@ module BothIsGood
       return unless @config.on_compare
 
       with_hook_error_handling do
-        invoke_result_hook(@config.on_compare, primary_result, secondary_result)
+        @config.on_compare.call(result_context)
       end
     end
 
@@ -82,7 +82,7 @@ module BothIsGood
       return unless @config.on_mismatch
 
       with_hook_error_handling do
-        invoke_result_hook(@config.on_mismatch, primary_result, secondary_result)
+        @config.on_mismatch.call(result_context)
       end
     end
 
@@ -104,12 +104,14 @@ module BothIsGood
     memoize def names = {primary:, secondary:}
     memoize def call_args = @kwargs.empty? ? @args : [*@args, @kwargs]
 
-    def invoke_result_hook(hook, primary_result, secondary_result)
-      case hook.arity
-      when 2 then hook.call(primary_result, secondary_result)
-      when 3 then hook.call(primary_result, secondary_result, names)
-      else hook.call(primary_result, secondary_result, call_args, names)
-      end
+    memoize def result_context
+      BothIsGood::Context::Result.new(
+        target: @target,
+        args: call_args,
+        primary_result:,
+        secondary_result:,
+        names:
+      )
     end
 
     def invoke_error_hook(hook, error, method_name)
