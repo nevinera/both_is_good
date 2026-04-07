@@ -126,13 +126,21 @@ RSpec.describe BothIsGood::Invocation do
       end
     end
 
-    context "with arity-2 switch" do
-      let(:switch) { ->(klass, name) { false } }
+    context "with arity-1 switch" do
+      let(:switch) { ->(ctx) { false } }
       let(:config_opts) { {switch: switch} }
 
-      it "calls switch with the target class and method name" do
-        expect(switch).to receive(:call).with(owner_class, :the_method).and_call_original
+      it "calls switch with a Context::Switching object" do
+        expect(switch).to receive(:call).with(an_instance_of(BothIsGood::Context::Switching)).and_call_original
         invocation.run
+      end
+
+      it "passes the correct target_class and method_name in the context" do
+        received = []
+        switch = ->(ctx) { (received << ctx) && false }
+        config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, switch:)
+        described_class.new(config, invocation_target, [], {}).run
+        expect(received.map { [_1.target_class, _1.method_name] }).to eq([[owner_class, :the_method]])
       end
     end
   end

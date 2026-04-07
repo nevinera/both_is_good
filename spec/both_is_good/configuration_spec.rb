@@ -105,11 +105,11 @@ RSpec.describe BothIsGood::Configuration do
 
     it "accepts callables with arity 0 or 2" do
       expect { config.switch = -> {} }.not_to raise_error
-      expect { config.switch = ->(klass, name) {} }.not_to raise_error
+      expect { config.switch = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.switch = ->(a) {} }.to raise_error(ArgumentError)
+      expect { config.switch = ->(a, b) {} }.to raise_error(ArgumentError)
       expect { config.switch = ->(a, b, c) {} }.to raise_error(ArgumentError)
     end
 

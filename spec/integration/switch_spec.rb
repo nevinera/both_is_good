@@ -208,8 +208,8 @@ RSpec.describe "Integration test: dynamic switching" do
     end
   end
 
-  describe "arity-2 switch" do
-    it "receives the target class and method name" do
+  describe "arity-1 switch" do
+    it "receives a Context::Switching object with the target class and method name" do
       received = []
       sw = switched
       klass = Class.new do
@@ -222,14 +222,14 @@ RSpec.describe "Integration test: dynamic switching" do
         implemented_twice :the_method,
           original: :original_impl,
           replacement: :replacement_impl,
-          switch: ->(klass, name) {
-                    received << [klass, name]
+          switch: ->(ctx) {
+                    received << ctx
                     sw[0]
                   }
       end
 
       klass.new.the_method
-      expect(received).to eq([[klass, :the_method]])
+      expect(received.map { [_1.target_class, _1.method_name] }).to eq([[klass, :the_method]])
     end
   end
 end

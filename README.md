@@ -33,7 +33,7 @@ implemented_twice(
   original: :foo_one,
   replacement: :foo_two,
   rate: 0.01,
-  switch: ->(klass, name) { FeatureFlags.enabled?(:"enable_#{name}") },
+  switch: ->(ctx) { FeatureFlags.enabled?(:"enable_#{ctx.tag}") },
   comparator: ->(val_one, val_two) { Math.abs(val_one - val_two) < 0.01 },
   on_mismatch: ->(val_one, val_two) { LOGGER.warn("mismatch: #{val_one} | #{val_two}") },
   on_compare: ->(val_one, val_two) { LOGGER.warn("comparing #{val_one} to #{val_two}") },
@@ -60,18 +60,13 @@ The method takes these parameters:
   should bother evaluating the shadow implementation for comparison. If the
   implementation is costly (makes significant database calls, for example)
   and/or invoked frequently, you probably want a lower rate in production.
-* The `switch:` parameter takes a callable with arity 0 or 2. When it returns
+* The `switch:` parameter takes a callable with arity 0 or 1. When it returns
   a truthy value, the roles swap: replacement becomes the return value and
-  original becomes the shadow (called at `rate` for comparison). Arity 2
-  receives the target's actual class and the method name as a symbol, making
-  it straightforward to drive from a feature-flag system:
-
-  ```ruby
-  switch: ->(klass, name) { FeatureFlags.enabled?(:"enable_#{klass}_#{name}") }
-  ```
-
-  `switch` can be set on a shared `Configuration` object so you only have to
-  define it once.
+  original becomes the shadow (called at `rate` for comparison). Arity 1
+  receives a `BothIsGood::Context::Switching` object, making it straightforward
+  to drive from a feature-flag system. The context exposes `target_class`,
+  `method_name`, `target_class_name`, `target_class_string` (underscored,
+  like `"my_module/my_class"`), and `tag` (like `"my_mod/my_class--my_method"`)
 * The `comparator:` parameter takes a callable, and yields two arguments to
   it (the results of the two implementations); its result is truthy or falsey.
   By default, comparison is done using `==`.
@@ -138,7 +133,7 @@ avoid having to supply them constantly.
 # Global configuration
 BothIsGood.configure do |config|
   config.rate = 0.5
-  config.switch = ->(klass, name) { FeatureFlags.enabled?(:"enable_#{name}") }
+  config.switch = ->(ctx) { FeatureFlags.enabled?(:"enable_#{ctx.tag}") }
   config.on_compare = ->(a, b) { LOGGER.puts "compared!" }
   config.on_hook_error = ->(e) { LOGGER.puts "bad -.-" }
 end

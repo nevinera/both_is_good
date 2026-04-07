@@ -24,7 +24,7 @@ module BothIsGood
       elsif @config.switch.arity == 0
         @config.switch.call
       else
-        @config.switch.call(@target.target_class, @target.method_name)
+        @config.switch.call(BothIsGood::Context::Switching.new(@target.target_class, @target.method_name))
       end
     end
 

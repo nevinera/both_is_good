@@ -34,7 +34,7 @@ module BothIsGood
     end
 
     def switch=(value)
-      validate_hook!(:switch, value, [0, 2])
+      validate_hook!(:switch, value, [0, 1])
       @switch = value
     end
 
