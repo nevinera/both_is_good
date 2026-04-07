@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.4.0 (unreleased)
+## 0.5.0
+
+### Breaking changes
+
+* All of the callables (except `on_hook_error`) are now passed a single
+  "context" object exposing the available data, instead of being yielded
+  complex lists of values depending on their arity. This also exposes
+  some additional data to those hooks for use.
+
+## 0.4.0
 
 ### Breaking changes
 
