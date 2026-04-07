@@ -34,27 +34,27 @@ module BothIsGood
     end
 
     def switch=(value)
-      validate_hook!(:switch, value, [0, 2])
+      validate_hook!(:switch, value, [0, 1])
       @switch = value
     end
 
     def on_mismatch=(value)
-      validate_hook!(:on_mismatch, value, [2, 3, 4])
+      validate_hook!(:on_mismatch, value, [1])
       @on_mismatch = value
     end
 
     def on_compare=(value)
-      validate_hook!(:on_compare, value, [2, 3, 4])
+      validate_hook!(:on_compare, value, [1])
       @on_compare = value
     end
 
     def on_primary_error=(value)
-      validate_hook!(:on_primary_error, value, [1, 2, 3])
+      validate_hook!(:on_primary_error, value, [1])
       @on_primary_error = value
     end
 
     def on_secondary_error=(value)
-      validate_hook!(:on_secondary_error, value, [1, 2, 3])
+      validate_hook!(:on_secondary_error, value, [1])
       @on_secondary_error = value
     end
 

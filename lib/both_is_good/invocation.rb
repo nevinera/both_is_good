@@ -24,7 +24,7 @@ module BothIsGood
       elsif @config.switch.arity == 0
         @config.switch.call
       else
-        @config.switch.call(@target.target_class, @target.method_name)
+        @config.switch.call(BothIsGood::Context::Switching.new(@target.target_class, @target.method_name))
       end
     end
 
@@ -53,14 +53,14 @@ module BothIsGood
 
     def on_primary_error(error)
       hook = @config.on_primary_error
-      with_hook_error_handling { invoke_error_hook(hook, error, primary) } if hook
+      with_hook_error_handling { hook.call(error_context(error, primary)) } if hook
     end
 
     def on_secondary_error(error)
       return unless @config.on_secondary_error
 
       with_hook_error_handling do
-        invoke_error_hook(@config.on_secondary_error, error, secondary)
+        @config.on_secondary_error.call(error_context(error, secondary))
       end
     end
 
@@ -74,7 +74,7 @@ module BothIsGood
       return unless @config.on_compare
 
       with_hook_error_handling do
-        invoke_result_hook(@config.on_compare, primary_result, secondary_result)
+        @config.on_compare.call(result_context)
       end
     end
 
@@ -82,7 +82,7 @@ module BothIsGood
       return unless @config.on_mismatch
 
       with_hook_error_handling do
-        invoke_result_hook(@config.on_mismatch, primary_result, secondary_result)
+        @config.on_mismatch.call(result_context)
       end
     end
 
@@ -104,20 +104,23 @@ module BothIsGood
     memoize def names = {primary:, secondary:}
     memoize def call_args = @kwargs.empty? ? @args : [*@args, @kwargs]
 
-    def invoke_result_hook(hook, primary_result, secondary_result)
-      case hook.arity
-      when 2 then hook.call(primary_result, secondary_result)
-      when 3 then hook.call(primary_result, secondary_result, names)
-      else hook.call(primary_result, secondary_result, call_args, names)
-      end
+    memoize def result_context
+      BothIsGood::Context::Result.new(
+        target: @target,
+        args: call_args,
+        primary_result:,
+        secondary_result:,
+        names:
+      )
     end
 
-    def invoke_error_hook(hook, error, method_name)
-      case hook.arity
-      when 1 then hook.call(error)
-      when 2 then hook.call(error, call_args)
-      else hook.call(error, call_args, method_name)
-      end
+    def error_context(error, dispatched_name)
+      BothIsGood::Context::Error.new(
+        target: @target,
+        args: call_args,
+        error:,
+        dispatched_name:
+      )
     end
   end
 end

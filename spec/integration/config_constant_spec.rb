@@ -5,7 +5,7 @@ RSpec.describe "Integration test: configuration constant" do
     log = mismatches
     BothIsGood::Configuration.new(nil).tap do |c|
       c.rate = 1.0
-      c.on_mismatch = ->(a, b) { log << [a, b] }
+      c.on_mismatch = ->(ctx) { log << [ctx.primary_result, ctx.secondary_result] }
     end
   end
 
@@ -84,7 +84,7 @@ RSpec.describe "Integration test: configuration constant" do
 
     it "class config takes precedence over global config" do
       global_mismatches = []
-      BothIsGood.configure { |c| c.on_mismatch = ->(a, b) { global_mismatches << [a, b] } }
+      BothIsGood.configure { |c| c.on_mismatch = ->(ctx) { global_mismatches << [ctx.primary_result, ctx.secondary_result] } }
       klass.new.the_method
       expect(mismatches).not_to be_empty
       expect(global_mismatches).to be_empty

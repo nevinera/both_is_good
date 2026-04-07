@@ -15,7 +15,7 @@ RSpec.describe "Integration test: complex config" do
           original: :primary_impl,
           replacement: :secondary_impl,
           rate: 0.0,
-          on_compare: ->(a, b) { events << [:compare, a, b] }
+          on_compare: ->(ctx) { events << [:compare, ctx.primary_result, ctx.secondary_result] }
       end
     end
 
@@ -39,7 +39,7 @@ RSpec.describe "Integration test: complex config" do
           original: :primary_impl,
           replacement: :secondary_impl,
           comparator: ->(a, b) { (a - b).abs <= 1 },
-          on_mismatch: ->(a, b) { events << [:mismatch, a, b] }
+          on_mismatch: ->(ctx) { events << [:mismatch, ctx.primary_result, ctx.secondary_result] }
       end
     end
 
@@ -62,7 +62,7 @@ RSpec.describe "Integration test: complex config" do
         implemented_twice :the_method,
           original: :primary_impl,
           replacement: :secondary_impl,
-          on_compare: ->(a, b) { events << [:compare, a, b] }
+          on_compare: ->(ctx) { events << [:compare, ctx.primary_result, ctx.secondary_result] }
       end
     end
 
@@ -86,7 +86,7 @@ RSpec.describe "Integration test: complex config" do
         implemented_twice :the_method,
           original: :primary_impl,
           replacement: :secondary_impl,
-          on_mismatch: ->(a, b) { events << [:mismatch, a, b] }
+          on_mismatch: ->(ctx) { events << [:mismatch, ctx.primary_result, ctx.secondary_result] }
       end
     end
 
@@ -106,7 +106,7 @@ RSpec.describe "Integration test: complex config" do
         implemented_twice :the_method,
           original: :primary_impl,
           replacement: :secondary_impl,
-          on_mismatch: ->(_a, _b) { log << :mismatch }
+          on_mismatch: ->(_ctx) { log << :mismatch }
       end
       matching_klass.new.the_method
       expect(log).to be_empty
@@ -126,7 +126,7 @@ RSpec.describe "Integration test: complex config" do
         implemented_twice :the_method,
           original: :primary_impl,
           replacement: :secondary_impl,
-          on_primary_error: ->(e) { events << [:primary_error, e.message] }
+          on_primary_error: ->(ctx) { events << [:primary_error, ctx.error.message] }
       end
     end
 
@@ -157,7 +157,7 @@ RSpec.describe "Integration test: complex config" do
         implemented_twice :the_method,
           original: :primary_impl,
           replacement: :secondary_impl,
-          on_secondary_error: ->(e) { events << [:secondary_error, e.message] }
+          on_secondary_error: ->(ctx) { events << [:secondary_error, ctx.error.message] }
       end
     end
 
@@ -184,7 +184,7 @@ RSpec.describe "Integration test: complex config" do
         implemented_twice :the_method,
           original: :primary_impl,
           replacement: :secondary_impl,
-          on_mismatch: ->(_a, _b) { raise "hook failed" },
+          on_mismatch: ->(_ctx) { raise "hook failed" },
           on_hook_error: ->(e) { events << [:hook_error, e.message] }
       end
     end

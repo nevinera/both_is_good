@@ -105,11 +105,11 @@ RSpec.describe BothIsGood::Configuration do
 
     it "accepts callables with arity 0 or 2" do
       expect { config.switch = -> {} }.not_to raise_error
-      expect { config.switch = ->(klass, name) {} }.not_to raise_error
+      expect { config.switch = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.switch = ->(a) {} }.to raise_error(ArgumentError)
+      expect { config.switch = ->(a, b) {} }.to raise_error(ArgumentError)
       expect { config.switch = ->(a, b, c) {} }.to raise_error(ArgumentError)
     end
 
@@ -123,15 +123,13 @@ RSpec.describe BothIsGood::Configuration do
       expect { config.on_mismatch = nil }.not_to raise_error
     end
 
-    it "accepts callables with arity 2, 3, or 4" do
-      expect { config.on_mismatch = ->(a, b) {} }.not_to raise_error
-      expect { config.on_mismatch = ->(a, b, c) {} }.not_to raise_error
-      expect { config.on_mismatch = ->(a, b, c, d) {} }.not_to raise_error
+    it "accepts callables with arity 1" do
+      expect { config.on_mismatch = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.on_mismatch = ->(a) {} }.to raise_error(ArgumentError)
-      expect { config.on_mismatch = ->(a, b, c, d, e) {} }.to raise_error(ArgumentError)
+      expect { config.on_mismatch = ->(a, b) {} }.to raise_error(ArgumentError)
+      expect { config.on_mismatch = -> {} }.to raise_error(ArgumentError)
     end
 
     it "rejects non-callables" do
@@ -144,14 +142,13 @@ RSpec.describe BothIsGood::Configuration do
       expect { config.on_compare = nil }.not_to raise_error
     end
 
-    it "accepts callables with arity 2, 3, or 4" do
-      expect { config.on_compare = ->(a, b) {} }.not_to raise_error
-      expect { config.on_compare = ->(a, b, c) {} }.not_to raise_error
-      expect { config.on_compare = ->(a, b, c, d) {} }.not_to raise_error
+    it "accepts callables with arity 1" do
+      expect { config.on_compare = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.on_compare = ->(a) {} }.to raise_error(ArgumentError)
+      expect { config.on_compare = ->(a, b) {} }.to raise_error(ArgumentError)
+      expect { config.on_compare = -> {} }.to raise_error(ArgumentError)
     end
   end
 
@@ -160,14 +157,13 @@ RSpec.describe BothIsGood::Configuration do
       expect { config.on_primary_error = nil }.not_to raise_error
     end
 
-    it "accepts callables with arity 1, 2, or 3" do
-      expect { config.on_primary_error = ->(a) {} }.not_to raise_error
-      expect { config.on_primary_error = ->(a, b) {} }.not_to raise_error
-      expect { config.on_primary_error = ->(a, b, c) {} }.not_to raise_error
+    it "accepts callables with arity 1" do
+      expect { config.on_primary_error = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.on_primary_error = ->(a, b, c, d) {} }.to raise_error(ArgumentError)
+      expect { config.on_primary_error = ->(a, b) {} }.to raise_error(ArgumentError)
+      expect { config.on_primary_error = -> {} }.to raise_error(ArgumentError)
     end
   end
 
@@ -176,14 +172,13 @@ RSpec.describe BothIsGood::Configuration do
       expect { config.on_secondary_error = nil }.not_to raise_error
     end
 
-    it "accepts callables with arity 1, 2, or 3" do
-      expect { config.on_secondary_error = ->(a) {} }.not_to raise_error
-      expect { config.on_secondary_error = ->(a, b) {} }.not_to raise_error
-      expect { config.on_secondary_error = ->(a, b, c) {} }.not_to raise_error
+    it "accepts callables with arity 1" do
+      expect { config.on_secondary_error = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.on_secondary_error = ->(a, b, c, d) {} }.to raise_error(ArgumentError)
+      expect { config.on_secondary_error = ->(a, b) {} }.to raise_error(ArgumentError)
+      expect { config.on_secondary_error = -> {} }.to raise_error(ArgumentError)
     end
   end
 

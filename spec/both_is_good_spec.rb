@@ -187,7 +187,7 @@ RSpec.describe BothIsGood do
         end
 
         it "uses the class config when set" do
-          hook = ->(a, b) {}
+          hook = ->(ctx) {}
           klass = Class.new do
             include BothIsGood
             both_is_good_configure(on_compare: hook)
@@ -198,7 +198,7 @@ RSpec.describe BothIsGood do
 
             implemented_twice :the_method, original: :primary_impl, replacement: :secondary_impl
           end
-          expect(hook).to receive(:call).with(:primary, :secondary)
+          expect(hook).to receive(:call).with(an_instance_of(BothIsGood::Context::Result))
           klass.new.the_method
         end
 
@@ -252,7 +252,7 @@ RSpec.describe BothIsGood do
         end
 
         it "inherits unoverridden attributes from global" do
-          handler = ->(a, b) {}
+          handler = ->(ctx) {}
           mock_global.on_mismatch = handler
           including_class.both_is_good_configure(rate: 0.3)
           expect(including_class.both_is_good_configuration.on_mismatch).to be(handler)
