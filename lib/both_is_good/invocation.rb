@@ -53,14 +53,14 @@ module BothIsGood
 
     def on_primary_error(error)
       hook = @config.on_primary_error
-      with_hook_error_handling { invoke_error_hook(hook, error, primary) } if hook
+      with_hook_error_handling { hook.call(error_context(error, primary)) } if hook
     end
 
     def on_secondary_error(error)
       return unless @config.on_secondary_error
 
       with_hook_error_handling do
-        invoke_error_hook(@config.on_secondary_error, error, secondary)
+        @config.on_secondary_error.call(error_context(error, secondary))
       end
     end
 
@@ -114,12 +114,13 @@ module BothIsGood
       )
     end
 
-    def invoke_error_hook(hook, error, method_name)
-      case hook.arity
-      when 1 then hook.call(error)
-      when 2 then hook.call(error, call_args)
-      else hook.call(error, call_args, method_name)
-      end
+    def error_context(error, dispatched_name)
+      BothIsGood::Context::Error.new(
+        target: @target,
+        args: call_args,
+        error:,
+        dispatched_name:
+      )
     end
   end
 end

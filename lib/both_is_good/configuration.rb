@@ -49,12 +49,12 @@ module BothIsGood
     end
 
     def on_primary_error=(value)
-      validate_hook!(:on_primary_error, value, [1, 2, 3])
+      validate_hook!(:on_primary_error, value, [1])
       @on_primary_error = value
     end
 
     def on_secondary_error=(value)
-      validate_hook!(:on_secondary_error, value, [1, 2, 3])
+      validate_hook!(:on_secondary_error, value, [1])
       @on_secondary_error = value
     end
 

@@ -124,8 +124,8 @@ RSpec.describe "Integration test: dynamic switching" do
             original: :original_impl,
             replacement: :replacement_impl,
             switch: -> { sw[0] },
-            on_primary_error: ->(e) { events << [:primary_error, e.message] },
-            on_secondary_error: ->(e) { events << [:secondary_error, e.message] }
+            on_primary_error: ->(ctx) { events << [:primary_error, ctx.error.message] },
+            on_secondary_error: ->(ctx) { events << [:secondary_error, ctx.error.message] }
         end
       end
 
@@ -173,8 +173,8 @@ RSpec.describe "Integration test: dynamic switching" do
             original: :original_impl,
             replacement: :replacement_impl,
             switch: -> { sw[0] },
-            on_primary_error: ->(e) { events << [:primary_error, e.message] },
-            on_secondary_error: ->(e) { events << [:secondary_error, e.message] }
+            on_primary_error: ->(ctx) { events << [:primary_error, ctx.error.message] },
+            on_secondary_error: ->(ctx) { events << [:secondary_error, ctx.error.message] }
         end
       end
 

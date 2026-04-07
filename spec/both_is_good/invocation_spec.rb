@@ -277,44 +277,27 @@ RSpec.describe BothIsGood::Invocation do
     end
 
     context "with arity 1" do
-      let(:hook) { ->(e) {} }
+      let(:hook) { ->(ctx) {} }
       let(:config_opts) { {on_primary_error: hook} }
 
-      it "is called with the error" do
-        expect(hook).to receive(:call).with(error)
+      it "is called with a Context::Error" do
+        expect(hook).to receive(:call).with(an_instance_of(BothIsGood::Context::Error))
         begin
           invocation.run
         rescue
           nil
         end
       end
-    end
 
-    context "with arity 2" do
-      let(:hook) { ->(e, ca) {} }
-      let(:config_opts) { {on_primary_error: hook} }
-
-      it "is called with the error and call_args" do
-        expect(hook).to receive(:call).with(error, [1, 2])
+      it "exposes the error, args, and dispatched_name" do
+        received = []
+        config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, on_primary_error: ->(ctx) { received << ctx })
         begin
-          described_class.new(local_config, invocation_target, [1, 2], {}).run
+          described_class.new(config, invocation_target, [1, 2], {}).run
         rescue
           nil
         end
-      end
-    end
-
-    context "with arity 3" do
-      let(:hook) { ->(e, ca, n) {} }
-      let(:config_opts) { {on_primary_error: hook} }
-
-      it "is called with the error, call_args, and primary method name" do
-        expect(hook).to receive(:call).with(error, [1, 2], :primary_impl)
-        begin
-          described_class.new(local_config, invocation_target, [1, 2], {}).run
-        rescue
-          nil
-        end
+        expect(received.map { [_1.error, _1.args, _1.dispatched_name] }).to eq([[error, [1, 2], :primary_impl]])
       end
     end
   end
@@ -342,32 +325,19 @@ RSpec.describe BothIsGood::Invocation do
     end
 
     context "with arity 1" do
-      let(:hook) { ->(e) {} }
+      let(:hook) { ->(ctx) {} }
       let(:config_opts) { {on_secondary_error: hook} }
 
-      it "is called with the error" do
-        expect(hook).to receive(:call).with(error)
+      it "is called with a Context::Error" do
+        expect(hook).to receive(:call).with(an_instance_of(BothIsGood::Context::Error))
         invocation.run
       end
-    end
 
-    context "with arity 2" do
-      let(:hook) { ->(e, ca) {} }
-      let(:config_opts) { {on_secondary_error: hook} }
-
-      it "is called with the error and call_args" do
-        expect(hook).to receive(:call).with(error, [1, 2])
-        described_class.new(local_config, invocation_target, [1, 2], {}).run
-      end
-    end
-
-    context "with arity 3" do
-      let(:hook) { ->(e, ca, n) {} }
-      let(:config_opts) { {on_secondary_error: hook} }
-
-      it "is called with the error, call_args, and secondary method name" do
-        expect(hook).to receive(:call).with(error, [1, 2], :secondary_impl)
-        described_class.new(local_config, invocation_target, [1, 2], {}).run
+      it "exposes the error, args, and dispatched_name" do
+        received = []
+        config = BothIsGood::LocalConfiguration.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, on_secondary_error: ->(ctx) { received << ctx })
+        described_class.new(config, invocation_target, [1, 2], {}).run
+        expect(received.map { [_1.error, _1.args, _1.dispatched_name] }).to eq([[error, [1, 2], :secondary_impl]])
       end
     end
   end

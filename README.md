@@ -37,8 +37,8 @@ implemented_twice(
   comparator: ->(val_one, val_two) { Math.abs(val_one - val_two) < 0.01 },
   on_mismatch: ->(ctx) { LOGGER.warn("mismatch: #{ctx.primary_result} | #{ctx.secondary_result}") },
   on_compare: ->(ctx) { LOGGER.warn("comparing #{ctx.primary_result} to #{ctx.secondary_result}") },
-  on_primary_error: ->(err, args) { LOGGER.warn("primary error #{err.class.name}") },
-  on_secondary_error: ->(err, args) { LOGGER.warn("secondary error #{err.class.name}") },
+  on_primary_error: ->(ctx) { LOGGER.warn("primary error #{ctx.error.class.name}") },
+  on_secondary_error: ->(ctx) { LOGGER.warn("secondary error #{ctx.error.class.name}") },
   on_hook_error: ->(err) { LOGGER.warn("OH NO! #{err.class.name}: #{err.message}") }
 )
 ```
@@ -79,14 +79,16 @@ The method takes these parameters:
   `primary_name`, `secondary_name`, `args`, `target_class`, `method_name`,
   `target_class_name`, `target_class_string`, and `tag`. **When `switch` is
   active, "primary" is the replacement and "secondary" is the original.**
-* The `on_primary_error:` parameter takes a callable and yields 1, 2, or 3
-  arguments: the StandardError rescued, the args supplied (as an array,
-  potentially with a Hash at the end for kwargs), and the name of the primary
-  method. The exception will be re-raised after handling. With `switch`
-  active, "primary" is the replacement method.
-* The `on_secondary_error:` parameter behaves identically (yielding the
-  secondary method name), but secondary exceptions are _not_ re-raised.
-  With `switch` active, "secondary" is the original method.
+* The `on_primary_error:` parameter takes a callable that receives a
+  `BothIsGood::Context::Error`. The exception will be re-raised after
+  handling. With `switch` active, "primary" is the replacement method.
+* The `on_secondary_error:` parameter takes the same shaped callable, but
+  secondary exceptions are _not_ re-raised. With `switch` active, "secondary"
+  is the original method.
+
+  The error context exposes `error`, `args`, `dispatched_name` (the actual
+  method called - primary or secondary), `target_class`, `method_name`,
+  `target_class_name`, `target_class_string`, and `tag`.
 * The `on_hook_error:` parameter is a callable that will be yielded _one_
   parameter (the StandardError instance), and is invoked if an error is
   _raised_ during one of the other hooks. Those errors will be swallowed if

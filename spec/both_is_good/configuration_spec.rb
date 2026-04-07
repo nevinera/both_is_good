@@ -157,14 +157,13 @@ RSpec.describe BothIsGood::Configuration do
       expect { config.on_primary_error = nil }.not_to raise_error
     end
 
-    it "accepts callables with arity 1, 2, or 3" do
-      expect { config.on_primary_error = ->(a) {} }.not_to raise_error
-      expect { config.on_primary_error = ->(a, b) {} }.not_to raise_error
-      expect { config.on_primary_error = ->(a, b, c) {} }.not_to raise_error
+    it "accepts callables with arity 1" do
+      expect { config.on_primary_error = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.on_primary_error = ->(a, b, c, d) {} }.to raise_error(ArgumentError)
+      expect { config.on_primary_error = ->(a, b) {} }.to raise_error(ArgumentError)
+      expect { config.on_primary_error = -> {} }.to raise_error(ArgumentError)
     end
   end
 
@@ -173,14 +172,13 @@ RSpec.describe BothIsGood::Configuration do
       expect { config.on_secondary_error = nil }.not_to raise_error
     end
 
-    it "accepts callables with arity 1, 2, or 3" do
-      expect { config.on_secondary_error = ->(a) {} }.not_to raise_error
-      expect { config.on_secondary_error = ->(a, b) {} }.not_to raise_error
-      expect { config.on_secondary_error = ->(a, b, c) {} }.not_to raise_error
+    it "accepts callables with arity 1" do
+      expect { config.on_secondary_error = ->(ctx) {} }.not_to raise_error
     end
 
     it "rejects callables with other arities" do
-      expect { config.on_secondary_error = ->(a, b, c, d) {} }.to raise_error(ArgumentError)
+      expect { config.on_secondary_error = ->(a, b) {} }.to raise_error(ArgumentError)
+      expect { config.on_secondary_error = -> {} }.to raise_error(ArgumentError)
     end
   end
 
