@@ -6,6 +6,8 @@ module BothIsGood
 
   def self.configure = yield(configuration)
 
+  def self.register_comparator(name, klass) = configuration.register_comparator(name, klass)
+
   def self.included(base)
     base.extend(ClassMethods)
   end
