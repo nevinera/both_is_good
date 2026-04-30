@@ -69,5 +69,46 @@ RSpec.describe BothIsGood::LocalConfiguration do
       expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: "not callable") }
         .to raise_error(ArgumentError)
     end
+
+    context "when comparator is a class" do
+      let(:comparator_class) do
+        Class.new do
+          def initialize(a, b) = nil
+
+          def call = true
+        end
+      end
+
+      it "accepts a class with matching initialize and call arities" do
+        expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: comparator_class) }
+          .not_to raise_error
+      end
+
+      it "raises when call is not defined" do
+        klass = Class.new { def initialize(a, b) = nil }
+        expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: klass) }
+          .to raise_error(ArgumentError, /call/)
+      end
+
+      it "raises when call has wrong arity" do
+        klass = Class.new do
+          def initialize(a, b) = nil
+
+          def call(x) = nil
+        end
+        expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: klass) }
+          .to raise_error(ArgumentError, /call/)
+      end
+
+      it "raises when initialize has wrong arity" do
+        klass = Class.new do
+          def initialize(a) = nil
+
+          def call = true
+        end
+        expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: klass) }
+          .to raise_error(ArgumentError, /initialize/)
+      end
+    end
   end
 end

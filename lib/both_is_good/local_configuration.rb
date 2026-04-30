@@ -24,10 +24,21 @@ module BothIsGood
 
     def validated_comparator(value)
       return nil if value.nil?
+      return validated_comparator_class(value) if value.is_a?(Class)
       unless value.respond_to?(:call) && value.arity == 2
-        raise ArgumentError, "comparator must be nil or callable with arity 2"
+        raise ArgumentError, "comparator must be nil, callable with arity 2, or a class with initialize(a, b) and call"
       end
       value
+    end
+
+    def validated_comparator_class(klass)
+      unless klass.method_defined?(:call) && klass.instance_method(:call).arity == 0
+        raise ArgumentError, "comparator class must define a zero-arity call instance method"
+      end
+      unless klass.instance_method(:initialize).arity == 2
+        raise ArgumentError, "comparator class must define initialize with arity 2"
+      end
+      klass
     end
   end
 end

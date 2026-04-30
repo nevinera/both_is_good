@@ -98,7 +98,13 @@ module BothIsGood
 
     def compare(primary_result, secondary_result)
       comparator = @config.comparator
-      comparator ? comparator.call(primary_result, secondary_result) : primary_result == secondary_result
+      if comparator.nil?
+        primary_result == secondary_result
+      elsif comparator.is_a?(Class)
+        comparator.new(primary_result, secondary_result).call
+      else
+        comparator.call(primary_result, secondary_result)
+      end
     end
 
     memoize def names = {primary:, secondary:}

@@ -168,6 +168,39 @@ RSpec.describe BothIsGood::Invocation do
       expect(comparator).not_to receive(:call)
       invocation.run
     end
+
+    context "when comparator is a class" do
+      let(:comparator_class) do
+        Class.new do
+          def initialize(a, b)
+            @a = a
+            @b = b
+          end
+
+          def call = @a.even? == @b.even?
+        end
+      end
+      let(:config_opts) { {comparator: comparator_class} }
+
+      it "instantiates the comparator with both results" do
+        expect(comparator_class).to receive(:new).with(2, 3).and_call_original
+        invocation.run
+      end
+
+      it "uses the return value of call to determine match" do
+        log = []
+        config = BothIsGood::LocalConfiguration.new(
+          nil,
+          owner: owner_class,
+          original: :primary_impl,
+          replacement: :secondary_impl,
+          comparator: comparator_class,
+          on_mismatch: ->(ctx) { log << :mismatch }
+        )
+        described_class.new(config, invocation_target, [], {}).run
+        expect(log).to eq([:mismatch])
+      end
+    end
   end
 
   describe "on_compare" do
