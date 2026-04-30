@@ -197,6 +197,86 @@ RSpec.describe BothIsGood::Configuration do
     end
   end
 
+  describe "#comparators" do
+    it "defaults to an empty hash" do
+      expect(config.comparators).to eq({})
+    end
+
+    it "is inherited from a base config" do
+      klass = Class.new do
+        def initialize(a, b) = nil
+
+        def call = true
+      end
+      base = described_class.new(nil)
+      base.register_comparator(:my_comparator, klass)
+      expect(described_class.new(base).comparators).to include(my_comparator: klass)
+    end
+
+    it "does not share state with the base config" do
+      base = described_class.new(nil)
+      derived = described_class.new(base)
+      klass = Class.new do
+        def initialize(a, b) = nil
+
+        def call = true
+      end
+      derived.register_comparator(:my_comparator, klass)
+      expect(base.comparators).to be_empty
+    end
+  end
+
+  describe "#register_comparator" do
+    let(:comparator_class) do
+      Class.new do
+        def initialize(a, b) = nil
+
+        def call = true
+      end
+    end
+
+    it "stores the comparator class by name" do
+      config.register_comparator(:my_comparator, comparator_class)
+      expect(config.comparators[:my_comparator]).to be(comparator_class)
+    end
+
+    it "raises when name is not a Symbol" do
+      expect { config.register_comparator("my_comparator", comparator_class) }
+        .to raise_error(ArgumentError, /Symbol/)
+    end
+
+    it "raises when klass is not a class" do
+      expect { config.register_comparator(:my_comparator, -> {}) }
+        .to raise_error(ArgumentError, /class/)
+    end
+
+    it "raises when call is not defined" do
+      klass = Class.new { def initialize(a, b) = nil }
+      expect { config.register_comparator(:my_comparator, klass) }
+        .to raise_error(ArgumentError, /call/)
+    end
+
+    it "raises when call has wrong arity" do
+      klass = Class.new do
+        def initialize(a, b) = nil
+
+        def call(x) = nil
+      end
+      expect { config.register_comparator(:my_comparator, klass) }
+        .to raise_error(ArgumentError, /call/)
+    end
+
+    it "raises when initialize has wrong arity" do
+      klass = Class.new do
+        def initialize(a) = nil
+
+        def call = true
+      end
+      expect { config.register_comparator(:my_comparator, klass) }
+        .to raise_error(ArgumentError, /initialize/)
+    end
+  end
+
   describe "inheriting from global configuration" do
     let(:mock_global) { described_class.new(nil).tap { |c| c.rate = 0.25 } }
 

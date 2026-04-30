@@ -13,7 +13,7 @@ module BothIsGood
     ATTRIBUTES = DEFAULTS.keys.freeze
     UNSUPPLIED = Object.new.freeze
 
-    attr_reader(*ATTRIBUTES)
+    attr_reader(*ATTRIBUTES, :comparators)
 
     def self.global
       @global ||= new(nil, **DEFAULTS)
@@ -22,9 +22,22 @@ module BothIsGood
     def initialize(supplied_base = UNSUPPLIED, **overrides)
       base = base_config(supplied_base)
       apply_initial_values(base, **overrides)
+      @comparators = base ? base.comparators.dup : {}
     end
 
     def dup = self.class.new(self)
+
+    def register_comparator(name, klass)
+      raise ArgumentError, "comparator name must be a Symbol" unless name.is_a?(Symbol)
+      raise ArgumentError, "comparator must be a class" unless klass.is_a?(Class)
+      unless klass.method_defined?(:call) && klass.instance_method(:call).arity == 0
+        raise ArgumentError, "comparator class must define a zero-arity call instance method"
+      end
+      unless klass.instance_method(:initialize).arity == 2
+        raise ArgumentError, "comparator class must define initialize with arity 2"
+      end
+      @comparators[name] = klass
+    end
 
     def rate=(value)
       unless value.is_a?(Numeric) && (0.0..1.0).cover?(value)
