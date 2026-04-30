@@ -110,5 +110,29 @@ RSpec.describe BothIsGood::LocalConfiguration do
           .to raise_error(ArgumentError, /initialize/)
       end
     end
+
+    context "when comparator is a symbol" do
+      let(:comparator_class) do
+        Class.new do
+          def initialize(a, b) = nil
+
+          def call = true
+        end
+      end
+
+      let(:base_config) do
+        BothIsGood::Configuration.new(nil).tap { |c| c.register_comparator(:my_comparator, comparator_class) }
+      end
+
+      it "resolves to the registered comparator class" do
+        config = described_class.new(base_config, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: :my_comparator)
+        expect(config.comparator).to be(comparator_class)
+      end
+
+      it "raises when the name is not registered" do
+        expect { described_class.new(nil, owner: owner_class, original: :primary_impl, replacement: :secondary_impl, comparator: :unknown) }
+          .to raise_error(ArgumentError, /unknown/)
+      end
+    end
   end
 end

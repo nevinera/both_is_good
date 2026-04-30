@@ -25,10 +25,15 @@ module BothIsGood
     def validated_comparator(value)
       return nil if value.nil?
       return validated_comparator_class(value) if value.is_a?(Class)
+      return resolve_comparator_name(value) if value.is_a?(Symbol)
       unless value.respond_to?(:call) && value.arity == 2
-        raise ArgumentError, "comparator must be nil, callable with arity 2, or a class with initialize(a, b) and call"
+        raise ArgumentError, "comparator must be nil, callable with arity 2, a class with initialize(a, b) and call, or a registered comparator name"
       end
       value
+    end
+
+    def resolve_comparator_name(name)
+      comparators.fetch(name) { raise ArgumentError, "no comparator registered as #{name.inspect}" }
     end
 
     def validated_comparator_class(klass)
