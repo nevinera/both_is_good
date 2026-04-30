@@ -109,8 +109,8 @@ end
 
 require_relative "both_is_good/context"
 require_relative "both_is_good/version"
+require_relative "both_is_good/comparators"
 require_relative "both_is_good/configuration"
 require_relative "both_is_good/local_configuration"
 require_relative "both_is_good/invocation"
 require_relative "both_is_good/implemented_twice"
-require_relative "both_is_good/comparators"

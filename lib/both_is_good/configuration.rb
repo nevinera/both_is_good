@@ -22,7 +22,7 @@ module BothIsGood
     def initialize(supplied_base = UNSUPPLIED, **overrides)
       base = base_config(supplied_base)
       apply_initial_values(base, **overrides)
-      @comparators = base ? base.comparators.dup : {}
+      @comparators = base ? base.comparators.dup : Comparators::DEFAULT_COMPARATORS.dup
     end
 
     def dup = self.class.new(self)

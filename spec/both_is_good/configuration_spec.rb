@@ -198,8 +198,8 @@ RSpec.describe BothIsGood::Configuration do
   end
 
   describe "#comparators" do
-    it "defaults to an empty hash" do
-      expect(config.comparators).to eq({})
+    it "initializes with the default comparators when given no base" do
+      expect(described_class.new(nil).comparators).to eq(BothIsGood::Comparators::DEFAULT_COMPARATORS)
     end
 
     it "is inherited from a base config" do
@@ -222,7 +222,7 @@ RSpec.describe BothIsGood::Configuration do
         def call = true
       end
       derived.register_comparator(:my_comparator, klass)
-      expect(base.comparators).to be_empty
+      expect(base.comparators).not_to include(my_comparator: klass)
     end
   end
 

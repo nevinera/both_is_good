@@ -43,3 +43,22 @@ RSpec.describe BothIsGood::Comparators::FloatingPoint do
     it { is_expected.to be false }
   end
 end
+
+RSpec.describe "built-in comparator registration" do
+  around do |example|
+    example.run
+    BothIsGood::Configuration.instance_variable_set(:@global, nil)
+  end
+
+  it "registers :float as FloatingPoint" do
+    expect(BothIsGood.configuration.comparators[:float]).to be(BothIsGood::Comparators::FloatingPoint)
+  end
+
+  it "registers :string_ci as StringCaseInsensitive" do
+    expect(BothIsGood.configuration.comparators[:string_ci]).to be(BothIsGood::Comparators::StringCaseInsensitive)
+  end
+
+  it "registers :same_id as SameId" do
+    expect(BothIsGood.configuration.comparators[:same_id]).to be(BothIsGood::Comparators::SameId)
+  end
+end
