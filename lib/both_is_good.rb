@@ -6,6 +6,8 @@ module BothIsGood
 
   def self.configure = yield(configuration)
 
+  def self.register_comparator(name, klass) = configuration.register_comparator(name, klass)
+
   def self.included(base)
     base.extend(ClassMethods)
   end
@@ -107,6 +109,7 @@ end
 
 require_relative "both_is_good/context"
 require_relative "both_is_good/version"
+require_relative "both_is_good/comparators"
 require_relative "both_is_good/configuration"
 require_relative "both_is_good/local_configuration"
 require_relative "both_is_good/invocation"

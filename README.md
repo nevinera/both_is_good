@@ -67,9 +67,11 @@ The method takes these parameters:
   to drive from a feature-flag system. The context exposes `target_class`,
   `method_name`, `target_class_name`, `target_class_string` (underscored,
   like `"my_module/my_class"`), and `tag` (like `"my_mod/my_class--my_method"`)
-* The `comparator:` parameter takes a callable, and yields two arguments to
-  it (the results of the two implementations); its result is truthy or falsey.
-  By default, comparison is done using `==`.
+* The `comparator:` parameter controls how results are compared. By default,
+  comparison is done using `==`. It accepts a callable with arity 2 (called with
+  both results), a class with `initialize(a, b)` and a zero-arity `call`
+  (instantiated with both results, then `call`ed), or a symbol naming a
+  registered comparator (see [Comparators](#comparators)).
 * The `on_mismatch:` parameter takes a callable that receives a
   `BothIsGood::Context::Result`. It fires any time the results _differ_.
 * The `on_compare:` parameter takes the same shaped callable, but fires any
@@ -123,6 +125,62 @@ def foo_two = more_implementation(details)
 # The original `foo` method is aliased to `_bothisgood_original_foo`.
 implemented_twice :foo, :foo_two
 ```
+
+## Comparators
+
+### Built-in comparators
+
+Three named comparators are registered by default and can be used by symbol:
+
+```ruby
+implemented_twice :foo, :foo_one, :foo_two, comparator: :float
+implemented_twice :bar, :bar_one, :bar_two, comparator: :string_ci
+implemented_twice :baz, :baz_one, :baz_two, comparator: :same_id
+```
+
+* `:float` (`BothIsGood::Comparators::FloatingPoint`) - compares numeric values
+  within `Float::EPSILON` relative tolerance; handles infinities and NaN.
+* `:string_ci` (`BothIsGood::Comparators::StringCaseInsensitive`) - compares
+  strings case-insensitively; treats two nils as equal.
+* `:same_id` (`BothIsGood::Comparators::SameId`) - compares objects by calling
+  `.id` on each; treats two nils as equal.
+
+### Class-based comparators
+
+You can pass a class directly as the `comparator:`. It must define
+`initialize(a, b)` and a zero-arity `call`:
+
+```ruby
+class MyComparator
+  def initialize(a, b)
+    @a = a
+    @b = b
+  end
+
+  def call
+    @a.normalize == @b.normalize
+  end
+end
+
+implemented_twice :foo, :foo_one, :foo_two, comparator: MyComparator
+```
+
+`BothIsGood::Comparators::Base` is available as a convenience base class
+that provides `initialize` and private `attr_reader :a, :b`.
+
+### Registering custom named comparators
+
+You can register a comparator class under a symbol name so it can be
+referenced by name in any `implemented_twice` call:
+
+```ruby
+BothIsGood.register_comparator(:normalized, MyComparator)
+
+implemented_twice :foo, :foo_one, :foo_two, comparator: :normalized
+```
+
+Named comparators are stored on the global configuration and inherited by
+class-level configurations.
 
 ## Configuration
 

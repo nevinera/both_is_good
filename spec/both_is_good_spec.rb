@@ -9,6 +9,26 @@ RSpec.describe BothIsGood do
     end
   end
 
+  describe ".register_comparator" do
+    let(:comparator_class) do
+      Class.new do
+        def initialize(a, b) = nil
+
+        def call = true
+      end
+    end
+
+    around do |example|
+      example.run
+      BothIsGood::Configuration.instance_variable_set(:@global, nil)
+    end
+
+    it "stores the comparator class on the global configuration" do
+      BothIsGood.register_comparator(:my_comparator, comparator_class)
+      expect(BothIsGood.configuration.comparators[:my_comparator]).to be(comparator_class)
+    end
+  end
+
   describe ".configure" do
     around do |example|
       example.run
