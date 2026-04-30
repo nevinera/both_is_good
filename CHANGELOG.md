@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0
+
+* New features
+   * `comparator:` now accepts a class with `initialize(a, b)` and a zero-arity
+     `call` instance method, instantiated with both results at comparison time.
+   * `comparator:` now accepts a symbol to look up a named comparator from the
+     configuration registry.
+   * `BothIsGood.register_comparator(name, klass)` registers a named comparator
+     class on the global configuration, available to all `implemented_twice` calls.
+   * Three built-in named comparators are available by default: `:float`
+     (within `Float::EPSILON` relative tolerance), `:string_ci` (case-insensitive,
+     nil == nil), and `:same_id` (compares `.id`, nil == nil).
+
 ## 0.5.0
 
 * Breaking changes
